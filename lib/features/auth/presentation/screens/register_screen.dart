@@ -16,7 +16,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _agreeToTerms = false;
 
-  // ── Theme colours (matching login_screen.dart)
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _bgLight = Color(0xFFF6F8F6);
   static const Color _bgDark = Color(0xFF102216);
@@ -52,17 +51,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             constraints: const BoxConstraints(maxWidth: 430),
             child: Column(
               children: [
-                // ── Header ───────────────────────────────────────────────
                 _buildHeader(textColor),
-
-                // ── Scrollable body ──────────────────────────────────────
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.only(bottom: 32),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // ── Title block ──────────────────────────────────
                         Padding(
                           padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
                           child: Column(
@@ -89,19 +84,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ],
                           ),
                         ),
-
-                        // ── Form ─────────────────────────────────────────
                         Padding(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 8),
+                            horizontal: 24,
+                            vertical: 8,
+                          ),
                           child: Form(
                             key: _formKey,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 const SizedBox(height: 12),
-
-                                // Full Name
                                 _buildLabel('Full Name', textColor),
                                 const SizedBox(height: 8),
                                 _buildTextField(
@@ -121,10 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           ? 'Please enter your full name'
                                           : null,
                                 ),
-
                                 const SizedBox(height: 20),
-
-                                // Email
                                 _buildLabel('Email Address', textColor),
                                 const SizedBox(height: 8),
                                 _buildTextField(
@@ -147,10 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     return null;
                                   },
                                 ),
-
                                 const SizedBox(height: 20),
-
-                                // Password
                                 _buildLabel('Password', textColor),
                                 const SizedBox(height: 8),
                                 _buildTextField(
@@ -160,7 +147,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ? Icons.visibility_off_outlined
                                       : Icons.visibility_outlined,
                                   onSuffixTap: () => setState(
-                                      () => _obscurePassword = !_obscurePassword),
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
                                   obscureText: _obscurePassword,
                                   inputBg: inputBg,
                                   borderColor: borderColor,
@@ -177,23 +165,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     return null;
                                   },
                                 ),
-
                                 const SizedBox(height: 24),
-
-                                // Terms & Conditions
                                 _buildTermsRow(textColor, subtitleColor),
-
                                 const SizedBox(height: 28),
-
-                                // Create Account button
                                 SizedBox(
                                   height: 48,
                                   child: ElevatedButton(
                                     onPressed: _handleRegister,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: _primary,
-                                      foregroundColor:
-                                          const Color(0xFF102216),
+                                      foregroundColor: const Color(0xFF102216),
                                       elevation: 4,
                                       shadowColor:
                                           _primary.withValues(alpha: 0.2),
@@ -209,10 +190,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ),
                                   ),
                                 ),
-
                                 const SizedBox(height: 16),
-
-                                // Login link
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -224,8 +202,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ),
                                     ),
                                     GestureDetector(
-                                      onTap: () =>
-                                          Navigator.maybePop(context),
+                                      onTap: () => Navigator.maybePop(context),
                                       child: Text(
                                         'Log In',
                                         style: GoogleFonts.manrope(
@@ -252,8 +229,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-
-  // ── Header ────────────────────────────────────────────────────────────────
 
   Widget _buildHeader(Color textColor) {
     return Padding(
@@ -287,8 +262,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // ── Terms row ─────────────────────────────────────────────────────────────
-
   Widget _buildTermsRow(Color textColor, Color subtitleColor) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,11 +273,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             value: _agreeToTerms,
             activeColor: _primary,
             side: BorderSide(color: subtitleColor),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            onChanged: (v) =>
-                setState(() => _agreeToTerms = v ?? false),
+            onChanged: (v) => setState(() => _agreeToTerms = v ?? false),
           ),
         ),
         const SizedBox(width: 12),
@@ -337,8 +309,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ],
     );
   }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   Widget _buildLabel(String text, Color color) {
     return Text(
@@ -386,9 +356,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: GoogleFonts.manrope(
-          color: isDark
-              ? const Color(0xFF64748B)
-              : const Color(0xFF94A3B8),
+          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
         ),
         filled: true,
         fillColor: inputBg,
