@@ -3,6 +3,7 @@ import 'package:prm393_booking_app/features/common/presentation/screens/simple_p
 import 'package:prm393_booking_app/features/customer_home/presentation/screens/customer_home_screen.dart';
 import 'package:prm393_booking_app/features/customer_menu/presentation/screens/customer_menu_screen.dart';
 import 'package:prm393_booking_app/theme/app_theme.dart';
+import 'package:prm393_booking_app/screen/login_screen.dart';
 
 void main() {
   runApp(const GourmetHavenApp());
@@ -11,9 +12,14 @@ void main() {
 class GourmetHavenApp extends StatelessWidget {
   const GourmetHavenApp({super.key});
 
+  static const Color _primary = Color(0xFF13EC5B);
+  static const Color _bgLight = Color(0xFFF6F8F6);
+  static const Color _bgDark = Color(0xFF102216);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Restaurant Table Management',
       debugShowCheckedModeBanner: false,
       title: 'Gourmet Haven',
       theme: AppTheme.light,
