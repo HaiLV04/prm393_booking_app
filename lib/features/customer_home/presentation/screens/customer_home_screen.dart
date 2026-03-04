@@ -28,15 +28,26 @@ class CustomerHomeScreen extends StatelessWidget {
                     slivers: [
                       const SliverToBoxAdapter(child: HomeHeader()),
                       const SliverToBoxAdapter(child: HomeHeroSection()),
-                      SliverToBoxAdapter(child: _buildQuickActions()),
+                      SliverToBoxAdapter(child: _buildQuickActions(context)),
                       SliverToBoxAdapter(child: _buildCategories(context)),
                       SliverToBoxAdapter(child: _buildFeaturedDishes(context)),
                     ],
                   ),
                 ),
-                const Align(
+                Align(
                   alignment: Alignment.bottomCenter,
-                  child: BottomNavBar(),
+                  child: BottomNavBar(
+                    onHomeTap: () {},
+                    onMenuTap: () {
+                      Navigator.pushReplacementNamed(context, '/menu');
+                    },
+                    onBookingsTap: () {
+                      Navigator.pushReplacementNamed(context, '/book');
+                    },
+                    onProfileTap: () {
+                      Navigator.pushReplacementNamed(context, '/profile');
+                    },
+                  ),
                 ),
               ],
             ),
@@ -46,9 +57,9 @@ class CustomerHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20),
+  Widget _buildQuickActions(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
           Expanded(
@@ -56,14 +67,22 @@ class CustomerHomeScreen extends StatelessWidget {
               title: 'Book a Table',
               icon: Icons.table_restaurant,
               filled: true,
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/book');
+              },
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: ActionCard(
               title: 'Delivery',
               icon: Icons.local_shipping,
               filled: false,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Delivery screen coming soon.')),
+                );
+              },
             ),
           ),
         ],

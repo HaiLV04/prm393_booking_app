@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:prm393_booking_app/features/common/presentation/screens/simple_placeholder_screen.dart';
+import 'package:prm393_booking_app/features/customer_home/presentation/screens/customer_home_screen.dart';
+import 'package:prm393_booking_app/features/customer_menu/presentation/screens/customer_menu_screen.dart';
+import 'package:prm393_booking_app/theme/app_theme.dart';
 import 'package:prm393_booking_app/screen/login_screen.dart';
 
 void main() {
@@ -17,26 +21,25 @@ class GourmetHavenApp extends StatelessWidget {
     return MaterialApp(
       title: 'Restaurant Table Management',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: _bgLight,
-        colorScheme: const ColorScheme.light(
-          primary: _primary,
-          surface: _bgLight,
+      title: 'Gourmet Haven',
+      theme: AppTheme.light,
+      initialRoute: '/home',
+      routes: {
+        '/home': (_) => const CustomerHomeScreen(),
+        '/menu': (_) => const CustomerMenuScreen(),
+        '/book': (_) => const SimplePlaceholderScreen(
+          title: 'Bookings',
+          message: 'Booking screen is under development.',
         ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: _bgDark,
-        colorScheme: const ColorScheme.dark(
-          primary: _primary,
-          surface: _bgDark,
+        '/cart': (_) => const SimplePlaceholderScreen(
+          title: 'Cart',
+          message: 'Cart screen is under development.',
         ),
-        useMaterial3: true,
-      ),
-      themeMode: ThemeMode.dark,
-      home: const LoginScreen(),
+        '/profile': (_) => const SimplePlaceholderScreen(
+          title: 'Profile',
+          message: 'Profile screen is under development.',
+        ),
+      },
     );
   }
 }
