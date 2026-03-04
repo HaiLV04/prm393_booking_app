@@ -7,49 +7,61 @@ class ActionCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.filled,
+    this.onTap,
   });
 
   final String title;
   final IconData icon;
   final bool filled;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: filled ? AppColors.primary : AppColors.surfaceLight,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: filled ? AppColors.primary : AppColors.surfaceLight,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Column(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: filled
-                  ? Colors.white.withOpacity(0.2)
-                  : AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Icon(icon, color: filled ? Colors.white : AppColors.primary),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: filled
+                      ? Colors.white.withOpacity(0.2)
+                      : AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Icon(
+                  icon,
+                  color: filled ? Colors.white : AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  color: filled ? Colors.white : AppColors.textMain,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: TextStyle(
-              color: filled ? Colors.white : AppColors.textMain,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
