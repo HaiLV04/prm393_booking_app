@@ -287,6 +287,25 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ],
                                 ),
+                                const SizedBox(height: 20),
+                                // Test Admin Panel Button
+                                Center(
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.pushReplacementNamed(
+                                      context,
+                                      '/admin',
+                                    ),
+                                    child: Text(
+                                      'Test Admin Panel',
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: _primary,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
