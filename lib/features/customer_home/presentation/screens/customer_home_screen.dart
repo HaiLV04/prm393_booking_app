@@ -10,9 +10,9 @@ class CustomerHomeScreen extends StatefulWidget {
 }
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
-  static const Color _primary = Color(0xFFFF7043);
-  static const Color _lightBackground = Color(0xFFFDF8F6);
-  static const Color _darkBackground = Color(0xFF1A0D0A);
+  static const Color _primary = Color(0xFF13EC5B);
+  static const Color _lightBackground = Color(0xFFF6F8F6);
+  static const Color _darkBackground = Color(0xFF102216);
 
   final _searchController = TextEditingController();
 
@@ -378,7 +378,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                                                     vertical: 2,
                                                   ),
                                               decoration: BoxDecoration(
-                                                color: Colors.green,
+                                                color: _primary,
                                                 borderRadius:
                                                     BorderRadius.circular(6),
                                               ),
@@ -405,8 +405,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                                               Icons.favorite,
                                               size: 16,
                                               color: item.isFavorite
-                                                  ? Colors.red
-                                                  : Colors.grey,
+                                                  ? _primary
+                                                  : const Color(0xFF94A3B8),
                                             ),
                                           ),
                                         ),
@@ -421,9 +421,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                                       children: [
                                         Row(
                                           children: [
-                                            const Icon(
+                                            Icon(
                                               Icons.star,
-                                              color: Colors.amber,
+                                              color: _primary,
                                               size: 14,
                                             ),
                                             const SizedBox(width: 4),
@@ -523,7 +523,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         gradient: dark
             ? null
             : const LinearGradient(
-                colors: [Color(0xFFFF7043), Color(0xFFEA580C)],
+                colors: [Color(0xFF13EC5B), Color(0xFF0FC449)],
               ),
         color: dark ? const Color(0xFF1F2937) : null,
       ),

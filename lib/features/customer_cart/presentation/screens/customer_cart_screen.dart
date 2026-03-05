@@ -5,9 +5,9 @@ import 'package:prm393_booking_app/features/common/presentation/widgets/customer
 class CustomerCartScreen extends StatelessWidget {
   const CustomerCartScreen({super.key});
 
-  static const Color _primary = Color(0xFFF46A25);
-  static const Color _lightBackground = Color(0xFFF8F6F5);
-  static const Color _darkBackground = Color(0xFF221610);
+  static const Color _primary = Color(0xFF13EC5B);
+  static const Color _lightBackground = Color(0xFFF6F8F6);
+  static const Color _darkBackground = Color(0xFF102216);
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +126,7 @@ class CustomerCartScreen extends StatelessWidget {
                           width: 48,
                           height: 6,
                           decoration: BoxDecoration(
-                            color: Colors.grey.withValues(alpha: 0.4),
+                            color: _primary.withValues(alpha: 0.35),
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
