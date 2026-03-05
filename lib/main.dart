@@ -6,6 +6,7 @@ import 'package:prm393_booking_app/features/customer_home/presentation/screens/c
 import 'package:prm393_booking_app/features/customer_menu/presentation/screens/customer_menu_screen.dart';
 import 'package:prm393_booking_app/features/customer_profile/presentation/screens/customer_profile_screen.dart';
 import 'package:prm393_booking_app/theme/app_theme.dart';
+import 'package:prm393_booking_app/features/admin_dashboard/admin_dashboard.dart';
 
 void main() {
   runApp(const GourmetHavenApp());
@@ -20,8 +21,9 @@ class GourmetHavenApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Gourmet Haven',
       theme: AppTheme.light,
-      initialRoute: '/home',
+      initialRoute: '/admin',
       routes: {
+        '/admin': (_) => const AdminDashboardScreen(),
         '/login': (_) => const LoginScreen(),
         '/home': (_) => const CustomerHomeScreen(),
         '/menu': (_) => const CustomerMenuScreen(),
