@@ -14,7 +14,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _agreeToTerms = false;
 
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _bgLight = Color(0xFFF6F8F6);
@@ -36,12 +35,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final bgColor = isDark ? _bgDark : _bgLight;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final subtitleColor =
-        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final subtitleColor = isDark
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF64748B);
     final inputBg = isDark ? _surfaceDark : Colors.white;
     final borderColor = isDark ? _borderDark : const Color(0xFFE2E8F0);
-    final iconColor =
-        isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    final iconColor = isDark
+        ? const Color(0xFF64748B)
+        : const Color(0xFF94A3B8);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -53,6 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 _buildHeader(textColor),
                 Expanded(
+                  // SingleChildScrollView cho phép cuộn khi bàn phím hiện lên
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.only(bottom: 32),
                     child: Column(
@@ -102,8 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   hintText: 'e.g. John Doe',
                                   suffixIcon: Icons.person_outline,
                                   keyboardType: TextInputType.name,
-                                  textCapitalization:
-                                      TextCapitalization.words,
+                                  textCapitalization: TextCapitalization.words,
                                   inputBg: inputBg,
                                   borderColor: borderColor,
                                   iconColor: iconColor,
@@ -111,8 +112,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   isDark: isDark,
                                   validator: (v) =>
                                       (v == null || v.trim().isEmpty)
-                                          ? 'Please enter your full name'
-                                          : null,
+                                      ? 'Please enter your full name'
+                                      : null,
                                 ),
                                 const SizedBox(height: 20),
                                 _buildLabel('Email Address', textColor),
@@ -165,8 +166,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 24),
-                                _buildTermsRow(textColor, subtitleColor),
                                 const SizedBox(height: 28),
                                 SizedBox(
                                   height: 48,
@@ -176,8 +175,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       backgroundColor: _primary,
                                       foregroundColor: const Color(0xFF102216),
                                       elevation: 4,
-                                      shadowColor:
-                                          _primary.withValues(alpha: 0.2),
+                                      shadowColor: _primary.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       shape: const StadiumBorder(),
                                     ),
                                     child: Text(
@@ -262,54 +262,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildTermsRow(Color textColor, Color subtitleColor) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 20,
-          height: 20,
-          child: Checkbox(
-            value: _agreeToTerms,
-            activeColor: _primary,
-            side: BorderSide(color: subtitleColor),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            onChanged: (v) => setState(() => _agreeToTerms = v ?? false),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _agreeToTerms = !_agreeToTerms),
-            child: Text.rich(
-              TextSpan(
-                style: GoogleFonts.manrope(
-                  fontSize: 14,
-                  color: subtitleColor,
-                ),
-                children: [
-                  const TextSpan(text: 'I agree to the '),
-                  TextSpan(
-                    text: 'Terms of Service',
-                    style: const TextStyle(color: _primary),
-                  ),
-                  const TextSpan(text: ' and '),
-                  TextSpan(
-                    text: 'Privacy Policy',
-                    style: const TextStyle(color: _primary),
-                  ),
-                  const TextSpan(text: '.'),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildLabel(String text, Color color) {
     return Text(
       text,
@@ -360,8 +312,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         filled: true,
         fillColor: inputBg,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         suffixIcon: suffixWidget,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -388,20 +342,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _handleRegister() {
-    if (!_agreeToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please agree to the Terms of Service and Privacy Policy.',
-            style: GoogleFonts.manrope(),
-          ),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
+    // validate() chạy tất cả validator của các TextFormField trong Form
+    // Nếu tất cả đều hợp lệ thì mới thực hiện logic đăng ký
     if (_formKey.currentState?.validate() ?? false) {
-      // TODO: implement registration logic
+      // TODO: implement registration logic (gọi API, lưu token, navigate...)
     }
   }
 }
