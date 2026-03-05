@@ -5,16 +5,16 @@ import 'package:prm393_booking_app/features/common/presentation/widgets/customer
 class CustomerProfileScreen extends StatelessWidget {
   const CustomerProfileScreen({super.key});
 
-  static const Color _primary = Color(0xFFF46A25);
-  static const Color _lightBackground = Color(0xFFF8F6F5);
-  static const Color _darkBackground = Color(0xFF221610);
+  static const Color _primary = Color(0xFF13EC5B);
+  static const Color _lightBackground = Color(0xFFF6F8F6);
+  static const Color _darkBackground = Color(0xFF102216);
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? _darkBackground : _lightBackground;
-    final cardColor = isDark ? const Color(0xFF2C1D15) : Colors.white;
-    final muted = isDark ? const Color(0xFFB89D8F) : const Color(0xFF846C60);
+    final cardColor = isDark ? const Color(0xFF1C271F) : Colors.white;
+    final muted = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -91,8 +91,8 @@ class CustomerProfileScreen extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: isDark
-                                    ? const Color(0xFF3D291E)
-                                    : const Color(0xFFF0EDEA),
+                                    ? const Color(0xFF233528)
+                                    : const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
@@ -174,7 +174,7 @@ class CustomerProfileScreen extends StatelessWidget {
                         icon: Icons.logout,
                         title: 'Log Out',
                         subtitle: null,
-                        iconColor: Colors.red,
+                        iconColor: _primary,
                         danger: true,
                         onTap: () => _handleLogout(context),
                       ),
@@ -229,7 +229,7 @@ class CustomerProfileScreen extends StatelessWidget {
                         title,
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w600,
-                          color: danger ? Colors.red : null,
+                          color: danger ? _primary : null,
                         ),
                       ),
                       if (subtitle != null)
@@ -237,7 +237,7 @@ class CustomerProfileScreen extends StatelessWidget {
                           subtitle,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
-                            color: const Color(0xFF846C60),
+                            color: const Color(0xFF64748B),
                           ),
                         ),
                     ],
