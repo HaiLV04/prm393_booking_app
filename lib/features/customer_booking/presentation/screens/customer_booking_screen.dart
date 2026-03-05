@@ -5,9 +5,9 @@ import 'package:prm393_booking_app/features/common/presentation/widgets/customer
 class CustomerBookingScreen extends StatelessWidget {
   const CustomerBookingScreen({super.key});
 
-  static const Color _primary = Color(0xFFF46A25);
-  static const Color _lightBackground = Color(0xFFF8F6F5);
-  static const Color _darkBackground = Color(0xFF221610);
+  static const Color _primary = Color(0xFF13EC5B);
+  static const Color _lightBackground = Color(0xFFF6F8F6);
+  static const Color _darkBackground = Color(0xFF102216);
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +111,7 @@ class CustomerBookingScreen extends StatelessWidget {
                                 children: [
                                   Icon(
                                     Icons.chevron_left,
-                                    color: Colors.grey[600],
+                                    color: const Color(0xFF64748B),
                                   ),
                                   Expanded(
                                     child: Text(
@@ -124,7 +124,7 @@ class CustomerBookingScreen extends StatelessWidget {
                                   ),
                                   Icon(
                                     Icons.chevron_right,
-                                    color: Colors.grey[600],
+                                    color: const Color(0xFF64748B),
                                   ),
                                 ],
                               ),
@@ -268,7 +268,7 @@ class CustomerBookingScreen extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: borderColor),
       ),
-      child: Icon(icon, color: Colors.grey[600]),
+      child: Icon(icon, color: const Color(0xFF64748B)),
     );
   }
 }
@@ -276,9 +276,9 @@ class CustomerBookingScreen extends StatelessWidget {
 class MyBookingsScreen extends StatelessWidget {
   const MyBookingsScreen({super.key});
 
-  static const Color _primary = Color(0xFFF46A25);
-  static const Color _lightBackground = Color(0xFFF8F6F5);
-  static const Color _darkBackground = Color(0xFF221610);
+  static const Color _primary = Color(0xFF13EC5B);
+  static const Color _lightBackground = Color(0xFFF6F8F6);
+  static const Color _darkBackground = Color(0xFF102216);
 
   @override
   Widget build(BuildContext context) {
@@ -536,13 +536,13 @@ class _TimeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final borderColor = disabled
         ? const Color(0xFFCBD5E1)
-        : (selected ? const Color(0xFFF46A25) : const Color(0xFFE2E8F0));
+        : (selected ? const Color(0xFF13EC5B) : const Color(0xFFE2E8F0));
     return Container(
       width: 95,
       padding: const EdgeInsets.symmetric(vertical: 10),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: selected ? const Color(0xFFF46A25) : Colors.transparent,
+        color: selected ? const Color(0xFF13EC5B) : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor),
       ),
