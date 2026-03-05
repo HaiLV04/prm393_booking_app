@@ -13,7 +13,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _bgLight = Color(0xFFF6F8F6);
@@ -26,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _fullNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -162,6 +165,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     }
                                     if (v.length < 6) {
                                       return 'Password must be at least 6 characters';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                                _buildLabel('Confirm Password', textColor),
+                                const SizedBox(height: 8),
+                                _buildTextField(
+                                  controller: _confirmPasswordController,
+                                  hintText: 'Re-enter your password',
+                                  suffixIcon: _obscureConfirmPassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  onSuffixTap: () => setState(
+                                    () => _obscureConfirmPassword =
+                                        !_obscureConfirmPassword,
+                                  ),
+                                  obscureText: _obscureConfirmPassword,
+                                  inputBg: inputBg,
+                                  borderColor: borderColor,
+                                  iconColor: iconColor,
+                                  textColor: textColor,
+                                  isDark: isDark,
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) {
+                                      return 'Please confirm your password';
+                                    }
+                                    if (v != _passwordController.text) {
+                                      return 'Passwords do not match';
                                     }
                                     return null;
                                   },
