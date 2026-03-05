@@ -33,13 +33,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final bgColor = isDark ? _bgDark : _bgLight;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final subtitleColor =
-        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final subtitleColor = isDark
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF64748B);
     final inputBg = isDark ? _inputDark : Colors.white;
-    final borderColor =
-        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-    final iconColor =
-        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor = isDark
+        ? const Color(0xFF334155)
+        : const Color(0xFFE2E8F0);
+    final iconColor = isDark
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF64748B);
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
@@ -178,7 +181,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   isDark: isDark,
                                   suffixWidget: IconButton(
                                     onPressed: () => setState(
-                                      () => _obscurePassword = !_obscurePassword,
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
                                     ),
                                     icon: Icon(
                                       _obscurePassword
@@ -197,8 +201,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                       backgroundColor: _primary,
                                       foregroundColor: const Color(0xFF111813),
                                       elevation: 4,
-                                      shadowColor:
-                                          _primary.withValues(alpha: 0.2),
+                                      shadowColor: _primary.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       shape: const StadiumBorder(),
                                     ),
                                     child: Text(
@@ -226,7 +231,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       onTap: () => Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => const RegisterScreen(),
+                                          builder: (_) =>
+                                              const RegisterScreen(),
                                         ),
                                       ),
                                       child: Text(
@@ -239,6 +245,25 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                                     ),
                                   ],
+                                ),
+                                const SizedBox(height: 20),
+                                // Test Admin Panel Button
+                                Center(
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.pushReplacementNamed(
+                                      context,
+                                      '/admin',
+                                    ),
+                                    child: Text(
+                                      'Test Admin Panel',
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: _primary,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -285,10 +310,7 @@ class _LoginScreenState extends State<LoginScreen> {
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
-      style: GoogleFonts.manrope(
-        fontSize: 16,
-        color: textColor,
-      ),
+      style: GoogleFonts.manrope(fontSize: 16, color: textColor),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: GoogleFonts.manrope(
