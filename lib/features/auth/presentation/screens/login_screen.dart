@@ -176,8 +176,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     _buildLabel('Password', textColor),
-
-                                    // TODO: xử lý quên mật khẩu
                                   ],
                                 ),
                                 const SizedBox(height: 6),
