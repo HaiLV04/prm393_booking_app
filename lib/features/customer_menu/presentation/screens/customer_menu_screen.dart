@@ -6,9 +6,9 @@ import 'package:prm393_booking_app/features/customer_menu/data/menu_data.dart';
 class CustomerMenuScreen extends StatelessWidget {
   const CustomerMenuScreen({super.key});
 
-  static const Color _primary = Color(0xFFF46A25);
-  static const Color _lightBackground = Color(0xFFF8F6F5);
-  static const Color _darkBackground = Color(0xFF221610);
+  static const Color _primary = Color(0xFF13EC5B);
+  static const Color _lightBackground = Color(0xFFF6F8F6);
+  static const Color _darkBackground = Color(0xFF102216);
 
   @override
   Widget build(BuildContext context) {

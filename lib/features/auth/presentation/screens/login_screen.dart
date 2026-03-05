@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/register_screen.dart';
+import 'package:prm393_booking_app/features/auth/presentation/screens/reset_password.dart';
+import 'package:prm393_booking_app/features/customer_home/presentation/screens/customer_home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,11 +12,17 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // Key dùng để gọi validate() cho toàn bộ Form bên dưới
   final _formKey = GlobalKey<FormState>();
+
+  // Controller để đọc giá trị người dùng nhập vào từng ô
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  // true = ẩn mật khẩu, false = hiện mật khẩu
   bool _obscurePassword = true;
 
+  // Bảng màu dùng chung trong màn hình này
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _bgLight = Color(0xFFF6F8F6);
   static const Color _bgDark = Color(0xFF102216);
@@ -22,6 +30,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    // Giải phóng bộ nhớ khi widget bị xóa khỏi cây widget,
+    // tránh memory leak nếu không dispose controller
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -46,8 +56,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
+        // SafeArea: tránh UI bị che bởi notch, status bar, home indicator
         child: Center(
           child: ConstrainedBox(
+            // Giới hạn chiều rộng tối đa 448px → đẹp trên tablet/web
             constraints: const BoxConstraints(maxWidth: 448),
             child: Container(
               decoration: BoxDecoration(
@@ -61,7 +73,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Row(
                       children: [
                         IconButton(
-                          onPressed: () => Navigator.maybePop(context),
+                          onPressed: () => Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CustomerHomeScreen(),
+                            ),
+                          ),
                           icon: const Icon(Icons.arrow_back),
                           color: textColor,
                           style: IconButton.styleFrom(
@@ -81,11 +98,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
+                        // SizedBox rỗng cân bằng layout để tiêu đề căn giữa đều
                         const SizedBox(width: 48),
                       ],
                     ),
                   ),
                   Expanded(
+                    // SingleChildScrollView cho phép cuộn khi bàn phím hiện lên
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
@@ -96,6 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Column(
                             children: [
+                              // Icon nhà hàng nằm trong vòng tròn nền xanh mờ
                               Container(
                                 width: 64,
                                 height: 64,
@@ -111,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Welcome Back',
+                                'Welcome',
                                 style: GoogleFonts.manrope(
                                   fontSize: 32,
                                   fontWeight: FontWeight.w700,
@@ -131,6 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                           const SizedBox(height: 32),
+                          // Form bọc các TextFormField để validate tập trung qua _formKey
                           Form(
                             key: _formKey,
                             child: Column(
@@ -155,17 +176,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     _buildLabel('Password', textColor),
-                                    GestureDetector(
-                                      onTap: () {},
-                                      child: Text(
-                                        'Forgot Password?',
-                                        style: GoogleFonts.manrope(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: _primary,
-                                        ),
-                                      ),
-                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 6),
@@ -179,6 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   iconColor: iconColor,
                                   textColor: textColor,
                                   isDark: isDark,
+                                  // Nút mắt: bấm để toggle ẩn/hiện mật khẩu
                                   suffixWidget: IconButton(
                                     onPressed: () => setState(
                                       () =>
@@ -186,17 +197,45 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     icon: Icon(
                                       _obscurePassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
+                                          ? Icons
+                                                .visibility_off_outlined // Đang ẩn
+                                          : Icons
+                                                .visibility_outlined, // Đang hiện
                                       color: iconColor,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 28),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const ResetPasswordScreen(),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Forgot Password?',
+                                        style: GoogleFonts.manrope(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: _primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 20),
+                                // Nút đăng nhập hình viên thuốc (StadiumBorder)
                                 SizedBox(
                                   height: 48,
                                   child: ElevatedButton(
-                                    onPressed: _handleLogin,
+                                    onPressed:
+                                        _handleLogin, // Gọi hàm validate & login
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: _primary,
                                       foregroundColor: const Color(0xFF111813),
@@ -204,7 +243,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       shadowColor: _primary.withValues(
                                         alpha: 0.2,
                                       ),
-                                      shape: const StadiumBorder(),
+                                      shape:
+                                          const StadiumBorder(), // Bo tròn hai đầu
                                     ),
                                     child: Text(
                                       'Login',
@@ -227,6 +267,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         color: subtitleColor,
                                       ),
                                     ),
+                                    // Chuyển sang màn RegisterScreen khi bấm
                                     GestureDetector(
                                       onTap: () => Navigator.push(
                                         context,
@@ -282,6 +323,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // Widget tái sử dụng để hiển thị nhãn (label) phía trên mỗi ô nhập liệu
   Widget _buildLabel(String text, Color color) {
     return Text(
       text,
@@ -293,6 +335,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // Widget tái sử dụng để tạo ô nhập liệu có style thống nhất
+  // Nhận vào controller, icon, màu sắc và các tuỳ chọn như ẩn mật khẩu
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -302,9 +346,10 @@ class _LoginScreenState extends State<LoginScreen> {
     required Color iconColor,
     required Color textColor,
     required bool isDark,
-    TextInputType keyboardType = TextInputType.text,
-    bool obscureText = false,
-    Widget? suffixWidget,
+    TextInputType keyboardType =
+        TextInputType.text, // Mặc định bàn phím chữ thường
+    bool obscureText = false, // Ẩn text (dùng cho password)
+    Widget? suffixWidget, // Icon cuối ô (VD: mắt toggle)
   }) {
     return TextFormField(
       controller: controller,
@@ -337,9 +382,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // Xử lý sự kiện bấm nút Login
   void _handleLogin() {
+    // validate() sẽ chạy tất cả validator của các TextFormField trong Form
+    // Nếu tất cả đều hợp lệ thì mới thực hiện logic đăng nhập
     if (_formKey.currentState?.validate() ?? false) {
-      // TODO: implement login logic
+      // TODO: implement login logic (gọi API, lưu token, navigate...)
     }
   }
 }

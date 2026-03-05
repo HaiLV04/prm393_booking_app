@@ -13,7 +13,7 @@ class CustomerBottomNav extends StatelessWidget {
   final CustomerNavTab activeTab;
   final int? cartBadgeCount;
 
-  static const Color _active = Color(0xFFF46A25);
+  static const Color _active = Color(0xFF13EC5B);
   static const Color _inactive = Color(0xFF94A3B8);
 
   @override
