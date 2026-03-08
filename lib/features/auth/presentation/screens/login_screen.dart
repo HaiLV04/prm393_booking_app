@@ -12,29 +12,34 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Key dùng để gọi validate() cho toàn bộ Form bên dưới
   final _formKey = GlobalKey<FormState>();
-
-  // Controller để đọc giá trị người dùng nhập vào từng ô
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // true = ẩn mật khẩu, false = hiện mật khẩu
   bool _obscurePassword = true;
 
-  // Bảng màu dùng chung trong màn hình này
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _bgLight = Color(0xFFF6F8F6);
   static const Color _bgDark = Color(0xFF102216);
-  static const Color _inputDark = Color(0xFF1C271F);
+  static const Color _cardDark = Color(0xFF1C2E21);
+  static const Color _inputBgDark = Color(0xFF28392E);
+  static const Color _textMuted = Color(0xFF9DB9A6);
 
   @override
   void dispose() {
-    // Giải phóng bộ nhớ khi widget bị xóa khỏi cây widget,
-    // tránh memory leak nếu không dispose controller
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _handleLogin() {
+    if (_formKey.currentState?.validate() ?? false) {
+      // TODO: implement login logic
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CustomerHomeScreen()),
+      );
+    }
   }
 
   @override
@@ -42,277 +47,203 @@ class _LoginScreenState extends State<LoginScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final bgColor = isDark ? _bgDark : _bgLight;
+    final cardColor = isDark ? _cardDark : Colors.white;
+    final inputBg = isDark ? _inputBgDark : Colors.grey.shade200;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final subtitleColor = isDark
-        ? const Color(0xFF94A3B8)
-        : const Color(0xFF64748B);
-    final inputBg = isDark ? _inputDark : Colors.white;
     final borderColor = isDark
-        ? const Color(0xFF334155)
-        : const Color(0xFFE2E8F0);
-    final iconColor = isDark
-        ? const Color(0xFF94A3B8)
-        : const Color(0xFF64748B);
+        ? _primary.withValues(alpha: 0.1)
+        : Colors.black12;
+
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        // SafeArea: tránh UI bị che bởi notch, status bar, home indicator
         child: Center(
-          child: ConstrainedBox(
-            // Giới hạn chiều rộng tối đa 448px → đẹp trên tablet/web
-            constraints: const BoxConstraints(maxWidth: 448),
-            child: Container(
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 430),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CustomerHomeScreen(),
-                            ),
-                          ),
-                          icon: const Icon(Icons.arrow_back),
-                          color: textColor,
-                          style: IconButton.styleFrom(
-                            shape: const CircleBorder(),
-                            padding: const EdgeInsets.all(12),
-                          ),
+                  // Logo Area
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      color: _primary.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: const Center(
+                      child: Icon(Icons.restaurant, color: _primary, size: 48),
+                    ),
+                  ),
+                  Text(
+                    'Restaurant Manager',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Login Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: borderColor),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                        Expanded(
-                          child: Text(
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          Text(
                             'Login',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.manrope(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.27,
+                            style: GoogleFonts.inter(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
                               color: textColor,
                             ),
                           ),
-                        ),
-                        // SizedBox rỗng cân bằng layout để tiêu đề căn giữa đều
-                        const SizedBox(width: 48),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    // SingleChildScrollView cho phép cuộn khi bàn phím hiện lên
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 32,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Column(
-                            children: [
-                              // Icon nhà hàng nằm trong vòng tròn nền xanh mờ
-                              Container(
-                                width: 64,
-                                height: 64,
-                                decoration: BoxDecoration(
-                                  color: _primary.withValues(alpha: 0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.restaurant,
-                                  color: _primary,
-                                  size: 32,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Welcome',
-                                style: GoogleFonts.manrope(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.48,
-                                  color: textColor,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Manage your restaurant tables efficiently.',
-                                style: GoogleFonts.manrope(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w400,
-                                  color: subtitleColor,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(height: 24),
+
+                          // Username Input
+                          _buildTextField(
+                            controller: _usernameController,
+                            hintText: 'Username',
+                            prefixIcon: Icons.person,
+                            inputBg: inputBg,
+                            isDark: isDark,
+                            textColor: textColor,
                           ),
-                          const SizedBox(height: 32),
-                          // Form bọc các TextFormField để validate tập trung qua _formKey
-                          Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildLabel('Email', textColor),
-                                const SizedBox(height: 6),
-                                _buildTextField(
-                                  controller: _emailController,
-                                  hintText: 'Enter your email',
-                                  prefixIcon: Icons.mail_outline,
-                                  keyboardType: TextInputType.emailAddress,
-                                  inputBg: inputBg,
-                                  borderColor: borderColor,
-                                  iconColor: iconColor,
-                                  textColor: textColor,
-                                  isDark: isDark,
-                                ),
-                                const SizedBox(height: 20),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    _buildLabel('Password', textColor),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                _buildTextField(
-                                  controller: _passwordController,
-                                  hintText: 'Enter your password',
-                                  prefixIcon: Icons.lock_outline,
-                                  obscureText: _obscurePassword,
-                                  inputBg: inputBg,
-                                  borderColor: borderColor,
-                                  iconColor: iconColor,
-                                  textColor: textColor,
-                                  isDark: isDark,
-                                  // Nút mắt: bấm để toggle ẩn/hiện mật khẩu
-                                  suffixWidget: IconButton(
-                                    onPressed: () => setState(
-                                      () =>
-                                          _obscurePassword = !_obscurePassword,
-                                    ),
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons
-                                                .visibility_off_outlined // Đang ẩn
-                                          : Icons
-                                                .visibility_outlined, // Đang hiện
-                                      color: iconColor,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 28),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const ResetPasswordScreen(),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Forgot Password?',
-                                        style: GoogleFonts.manrope(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: _primary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 20),
-                                // Nút đăng nhập hình viên thuốc (StadiumBorder)
-                                SizedBox(
-                                  height: 48,
-                                  child: ElevatedButton(
-                                    onPressed:
-                                        _handleLogin, // Gọi hàm validate & login
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: _primary,
-                                      foregroundColor: const Color(0xFF111813),
-                                      elevation: 4,
-                                      shadowColor: _primary.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      shape:
-                                          const StadiumBorder(), // Bo tròn hai đầu
-                                    ),
-                                    child: Text(
-                                      'Login',
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.24,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      "Don't have an account? ",
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 14,
-                                        color: subtitleColor,
-                                      ),
-                                    ),
-                                    // Chuyển sang màn RegisterScreen khi bấm
-                                    GestureDetector(
-                                      onTap: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const RegisterScreen(),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Register',
-                                        style: GoogleFonts.manrope(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: _primary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
-                                // Test Admin Panel Button
-                                Center(
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.pushReplacementNamed(
-                                      context,
-                                      '/admin',
-                                    ),
-                                    child: Text(
-                                      'Test Admin Panel',
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: _primary,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          const SizedBox(height: 16),
+
+                          // Password Input
+                          _buildTextField(
+                            controller: _passwordController,
+                            hintText: 'Password',
+                            prefixIcon: Icons.lock,
+                            obscureText: _obscurePassword,
+                            inputBg: inputBg,
+                            isDark: isDark,
+                            textColor: textColor,
+                            suffixWidget: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: _textMuted,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 4),
+
+                          // Forgot Password
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ResetPasswordScreen(),
+                                  ),
+                                );
+                              },
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 0,
+                                  vertical: 8,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                'Forgot Password?',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: _primary,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Login Button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: _handleLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _primary,
+                                foregroundColor: _bgDark,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: Text(
+                                'Login',
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Register Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account? ",
+                        style: GoogleFonts.inter(color: _textMuted),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterScreen(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'Register',
+                          style: GoogleFonts.inter(
+                            color: _primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -323,71 +254,41 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Widget tái sử dụng để hiển thị nhãn (label) phía trên mỗi ô nhập liệu
-  Widget _buildLabel(String text, Color color) {
-    return Text(
-      text,
-      style: GoogleFonts.manrope(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        color: color,
-      ),
-    );
-  }
-
-  // Widget tái sử dụng để tạo ô nhập liệu có style thống nhất
-  // Nhận vào controller, icon, màu sắc và các tuỳ chọn như ẩn mật khẩu
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
     required IconData prefixIcon,
     required Color inputBg,
-    required Color borderColor,
-    required Color iconColor,
-    required Color textColor,
     required bool isDark,
-    TextInputType keyboardType =
-        TextInputType.text, // Mặc định bàn phím chữ thường
-    bool obscureText = false, // Ẩn text (dùng cho password)
-    Widget? suffixWidget, // Icon cuối ô (VD: mắt toggle)
+    required Color textColor,
+    bool obscureText = false,
+    Widget? suffixWidget,
   }) {
     return TextFormField(
       controller: controller,
-      keyboardType: keyboardType,
       obscureText: obscureText,
-      style: GoogleFonts.manrope(fontSize: 16, color: textColor),
+      style: GoogleFonts.inter(fontSize: 16, color: textColor),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: GoogleFonts.manrope(
-          color: isDark ? const Color(0xFF9DB9A6) : const Color(0xFF94A3B8),
-        ),
+        hintStyle: GoogleFonts.inter(color: _textMuted),
         filled: true,
         fillColor: inputBg,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        prefixIcon: Icon(prefixIcon, color: iconColor, size: 22),
+        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+        prefixIcon: Icon(prefixIcon, color: _textMuted),
         suffixIcon: suffixWidget,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: borderColor),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: borderColor),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: _primary, width: 1.5),
+          borderSide: const BorderSide(color: _primary, width: 1),
         ),
       ),
     );
-  }
-
-  // Xử lý sự kiện bấm nút Login
-  void _handleLogin() {
-    // validate() sẽ chạy tất cả validator của các TextFormField trong Form
-    // Nếu tất cả đều hợp lệ thì mới thực hiện logic đăng nhập
-    if (_formKey.currentState?.validate() ?? false) {
-      // TODO: implement login logic (gọi API, lưu token, navigate...)
-    }
   }
 }
