@@ -31,8 +31,8 @@ class AdminDashboardScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome section
               Row(
+
                 children: [
                   Container(
                     width: 64,
@@ -41,7 +41,7 @@ class AdminDashboardScreen extends StatelessWidget {
                       shape: BoxShape.circle,
                       image: const DecorationImage(
                         fit: BoxFit.cover,
-                        image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBLPChzwG5pOdg0rNExb7fL3lTfgiLK-HSqp4SOeeO2_ku4f8AQ7nJ5llbbbo4Re56znVvrQXwrsd5kjgM4_tCopsEMqt1OACrXPZvZZWU9nFjndtZdyKh1Uc4A5a4feBsRb7lzGnRMq9ElAHmNjUL3h5O7NDhXRp4IZ7-yqYYm6fYc5NdJGGuWV1oMWK3zKKpcRmPLMxkuqNhJSLj0M7oVgepo4ZTXNH8buIeoy3LCK--jzXHW1HOeexQUj8qYXABryqV8rc-9Q_Y'),
+                        image: NetworkImage('https://static.vecteezy.com/system/resources/thumbnails/008/442/086/small/illustration-of-human-icon-user-symbol-icon-modern-design-on-blank-background-free-vector.jpg'),
                       ),
                       border: Border.all(color: AdminDashboardStyles.primary.withOpacity(0.12), width: 2),
                     ),
@@ -59,7 +59,6 @@ class AdminDashboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Summary cards (2 columns)
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
@@ -68,15 +67,14 @@ class AdminDashboardScreen extends StatelessWidget {
                 mainAxisSpacing: 12,
                 childAspectRatio: 1.4,
                 children: [
-                  _summaryCard(context, 'Tổng bàn', '8', Icons.table_restaurant, null),
-                  _summaryCard(context, 'Đang dùng', '3', Icons.groups, Colors.orange),
-                  _summaryCard(context, 'Order hôm nay', '12', Icons.receipt_long, Colors.blue),
-                  _summaryCard(context, 'Doanh thu', '5.2M', Icons.payments, AdminDashboardStyles.primary),
+                  _summaryCard(context, 'Tổng bàn', '8', Icons.table_restaurant),
+                  _summaryCard(context, 'Đang dùng', '3', Icons.groups),
+                  _summaryCard(context, 'Order hôm nay', '12', Icons.receipt_long),
+                  _summaryCard(context, 'Doanh thu', '5.2M', Icons.payments),
                 ],
               ),
               const SizedBox(height: 16),
 
-              // Quick actions
               Text('Quick Actions', style: AdminDashboardStyles.headerTitle(context)),
               const SizedBox(height: 8),
               GridView.count(
@@ -94,7 +92,6 @@ class AdminDashboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Recent reservations
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -116,32 +113,24 @@ class AdminDashboardScreen extends StatelessWidget {
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: 0,
-        selectedItemColor: AdminDashboardStyles.primary,
-        unselectedItemColor: Theme.of(context).textTheme.bodyMedium?.color,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Tổng quan'),
-          BottomNavigationBarItem(icon: Icon(Icons.restaurant_menu), label: 'Thực đơn'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Đơn hàng'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
+          BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
     );
   }
 
-  Widget _summaryCard(BuildContext context, String title, String value, IconData icon, Color? accent) {
-    final bool accentCard = accent != null;
-    final cardColor = accentCard ? AdminDashboardStyles.primary.withOpacity(0.06) : Theme.of(context).cardColor;
-    final textColor = accentCard
-      ? AdminDashboardStyles.primary
-      : (Theme.of(context).textTheme.headlineMedium?.color ?? Colors.black);
+  Widget _summaryCard(BuildContext context, String title, String value, IconData icon) {
+    final cardColor = AdminDashboardStyles.primary.withOpacity(0.06);
+    final textColor = AdminDashboardStyles.primary;
 
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: AdminDashboardStyles.cardRadius,
-        border: Border.all(color: AdminDashboardStyles.primary.withOpacity(0.10)),
+        border: Border.all(color: AdminDashboardStyles.primary.withOpacity(0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +139,7 @@ class AdminDashboardScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: AdminDashboardStyles.smallMuted(context)),
-              Icon(icon, color: accentCard ? AdminDashboardStyles.primary : Colors.grey.shade700),
+              Icon(icon, color: AdminDashboardStyles.primary),
             ],
           ),
           const SizedBox(height: 12),
@@ -168,9 +157,9 @@ class AdminDashboardScreen extends StatelessWidget {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
+            color: AdminDashboardStyles.card(context),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: AdminDashboardStyles.primary.withOpacity(0.10)),
+            border: Border.all(color: AdminDashboardStyles.borderColor(context)),
           ),
           child: Icon(icon, color: AdminDashboardStyles.primary),
         ),
@@ -184,9 +173,9 @@ class AdminDashboardScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: AdminDashboardStyles.card(context),
         borderRadius: AdminDashboardStyles.cardRadius,
-        border: Border.all(color: AdminDashboardStyles.primary.withOpacity(0.10)),
+        border: Border.all(color: AdminDashboardStyles.borderColor(context)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -309,7 +298,7 @@ class AdminDashboardScreen extends StatelessWidget {
 
   Widget _alertTile(BuildContext context, IconData icon, String title, String subtitle, String time, Color color) {
     return Container(
-      decoration: BoxDecoration(borderRadius: AdminDashboardStyles.cardRadius, color: Theme.of(context).cardColor, border: Border.all(color: Colors.grey.shade200)),
+      decoration: BoxDecoration(borderRadius: AdminDashboardStyles.cardRadius, color: AdminDashboardStyles.card(context), border: Border.all(color: AdminDashboardStyles.borderColor(context))),
       child: ListTile(
         leading: CircleAvatar(backgroundColor: color.withOpacity(0.12), child: Icon(icon, color: color)),
         title: Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
