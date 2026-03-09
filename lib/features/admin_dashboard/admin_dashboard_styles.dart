@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 
 class AdminDashboardStyles {
-  // Colors
+
+    static Color background(BuildContext context) =>
+        Theme.of(context).brightness == Brightness.dark ? backgroundDark : backgroundLight;
   static const Color backgroundLight = Color(0xFFF6F8F6);
   static const Color backgroundDark = Color(0xFF102216);
   static const Color cardDark = Color(0xFF1A3322);
   static const Color primary = Color(0xFF13EC5B);
   static const Color primaryDark = Color(0xFF0EA341);
 
-  // Radii
+  static Color card(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? cardDark : Colors.white;
+
+  static Color borderColor(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? primaryDark.withOpacity(0.18) : primary.withOpacity(0.10);
+
   static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(12));
 
-  // Text styles
   static TextStyle headerTitle(BuildContext context) =>
       TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _textPrimary(context));
 
