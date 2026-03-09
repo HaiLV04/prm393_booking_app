@@ -6,10 +6,7 @@ class AdminDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final bg = brightness == Brightness.dark
-        ? AdminDashboardStyles.backgroundDark
-        : AdminDashboardStyles.backgroundLight;
+    final bg = AdminDashboardStyles.background(context);
 
     return Scaffold(
       backgroundColor: bg,
@@ -17,18 +14,12 @@ class AdminDashboardScreen extends StatelessWidget {
         backgroundColor: bg.withOpacity(0.9),
         elevation: 0,
         centerTitle: false,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Admin Panel', style: TextStyle(color: AdminDashboardStyles.primary, fontSize: 12, fontWeight: FontWeight.w700)),
-            Text('Dashboard', style: AdminDashboardStyles.headerTitle(context)),
-          ],
-        ),
-        leading: IconButton(onPressed: () {}, icon: Icon(Icons.menu)),
+        title: Text('Dashboard', style: AdminDashboardStyles.headerTitle(context)),
+        leading: IconButton(onPressed: () {}, icon: const Icon(Icons.menu)),
         actions: [
           Stack(
             children: [
-              IconButton(onPressed: () {}, icon: Icon(Icons.notifications)),
+              IconButton(onPressed: () {}, icon: const Icon(Icons.notifications)),
               Positioned(top: 10, right: 10, child: CircleAvatar(radius: 4, backgroundColor: Colors.red,))
             ],
           )
@@ -40,62 +31,83 @@ class AdminDashboardScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Date filter row
+              // Welcome section
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Overview for today', style: AdminDashboardStyles.smallMuted(context)),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: AdminDashboardStyles.primary.withOpacity(0.12), elevation: 0, shape: StadiumBorder()),
-                    onPressed: () {},
-                    icon: Icon(Icons.expand_more, size: 16, color: AdminDashboardStyles.primary),
-                    label: Text('Oct 24, 2023', style: TextStyle(color: AdminDashboardStyles.primary, fontWeight: FontWeight.w700, fontSize: 12)),
-                  )
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      image: const DecorationImage(
+                        fit: BoxFit.cover,
+                        image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBLPChzwG5pOdg0rNExb7fL3lTfgiLK-HSqp4SOeeO2_ku4f8AQ7nJ5llbbbo4Re56znVvrQXwrsd5kjgM4_tCopsEMqt1OACrXPZvZZWU9nFjndtZdyKh1Uc4A5a4feBsRb7lzGnRMq9ElAHmNjUL3h5O7NDhXRp4IZ7-yqYYm6fYc5NdJGGuWV1oMWK3zKKpcRmPLMxkuqNhJSLj0M7oVgepo4ZTXNH8buIeoy3LCK--jzXHW1HOeexQUj8qYXABryqV8rc-9Q_Y'),
+                      ),
+                      border: Border.all(color: AdminDashboardStyles.primary.withOpacity(0.12), width: 2),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Welcome, Admin', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20)),
+                      const SizedBox(height: 4),
+                      Text('PRM393 Restaurant Manager', style: AdminDashboardStyles.smallMuted(context)),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
 
-              // Stats grid
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _buildRevenueCard(context),
-                  _buildSmallStat(context, icon: Icons.table_restaurant, title: 'Active Tables', value: '0', progress: 0),
-                  _buildSmallStat(context, icon: Icons.event_seat, title: 'Pending Requests', value: '0', progress: 0, accent: Colors.orange),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-              Text('Quick Actions', style: AdminDashboardStyles.headerTitle(context)),
-              const SizedBox(height: 8),
-
-              // Quick actions grid
+              // Summary cards (2 columns)
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 4/3,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.4,
                 children: [
-                  _quickAction('Manage\nTables', AdminDashboardStyles.primary, 'https://picsum.photos/400/300?1', Icons.edit),
-                  _quickAction('View\nReservations', Colors.white24, 'https://picsum.photos/400/300?2', Icons.calendar_month),
-                  _quickAction('Staff\nSchedule', Colors.white24, 'https://picsum.photos/400/300?3', Icons.group),
-                  _quickAction('Edit\nMenu', Colors.white24, 'https://picsum.photos/400/300?4', Icons.restaurant_menu),
+                  _summaryCard(context, 'Tổng bàn', '8', Icons.table_restaurant, null),
+                  _summaryCard(context, 'Đang dùng', '3', Icons.groups, Colors.orange),
+                  _summaryCard(context, 'Order hôm nay', '12', Icons.receipt_long, Colors.blue),
+                  _summaryCard(context, 'Doanh thu', '5.2M', Icons.payments, AdminDashboardStyles.primary),
                 ],
               ),
-
               const SizedBox(height: 16),
-              Text('Recent Activities', style: AdminDashboardStyles.headerTitle(context)),
-              const SizedBox(height: 8),
 
-              // Recent activities list
+              // Quick actions
+              Text('Quick Actions', style: AdminDashboardStyles.headerTitle(context)),
+              const SizedBox(height: 8),
+              GridView.count(
+                crossAxisCount: 4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                children: [
+                  _iconAction(context, Icons.bar_chart, 'Thống kê'),
+                  _iconAction(context, Icons.badge, 'Nhân viên'),
+                  _iconAction(context, Icons.map, 'Khu vực'),
+                  _iconAction(context, Icons.settings, 'Cài đặt'),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Recent reservations
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Recent Reservations', style: AdminDashboardStyles.headerTitle(context)),
+                  TextButton(onPressed: () {}, child: Text('View All', style: TextStyle(color: AdminDashboardStyles.primary)))
+                ],
+              ),
+              const SizedBox(height: 8),
               Column(
                 children: [
-                  _alertTile(context, Icons.priority_high, 'VIP Reservation Cancelled', 'Table 5 - John Doe', '2m ago', Colors.red),
+                  _reservationItem(context, 'T2', 'Table 2 - 4 Pax', 'Today, 19:00 • Nguyen Van A', 'Pending', Colors.orange),
                   const SizedBox(height: 8),
-                  _alertTile(context, Icons.person_add, 'New Waitlist Request', 'Party of 4', '15m ago', Colors.blue),
+                  _reservationItem(context, 'T5', 'Table 5 - 2 Pax', 'Today, 20:30 • Tran Thi B', 'Confirmed', AdminDashboardStyles.primary),
                 ],
               ),
             ],
@@ -104,9 +116,106 @@ class AdminDashboardScreen extends StatelessWidget {
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
+        currentIndex: 0,
+        selectedItemColor: AdminDashboardStyles.primary,
+        unselectedItemColor: Theme.of(context).textTheme.bodyMedium?.color,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Tổng quan'),
+          BottomNavigationBarItem(icon: Icon(Icons.restaurant_menu), label: 'Thực đơn'),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Đơn hàng'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryCard(BuildContext context, String title, String value, IconData icon, Color? accent) {
+    final bool accentCard = accent != null;
+    final cardColor = accentCard ? AdminDashboardStyles.primary.withOpacity(0.06) : Theme.of(context).cardColor;
+    final textColor = accentCard
+      ? AdminDashboardStyles.primary
+      : (Theme.of(context).textTheme.headlineMedium?.color ?? Colors.black);
+
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: AdminDashboardStyles.cardRadius,
+        border: Border.all(color: AdminDashboardStyles.primary.withOpacity(0.10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: AdminDashboardStyles.smallMuted(context)),
+              Icon(icon, color: accentCard ? AdminDashboardStyles.primary : Colors.grey.shade700),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(value, style: AdminDashboardStyles.largeNumber(context).copyWith(color: textColor)),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconAction(BuildContext context, IconData icon, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AdminDashboardStyles.primary.withOpacity(0.10)),
+          ),
+          child: Icon(icon, color: AdminDashboardStyles.primary),
+        ),
+        const SizedBox(height: 6),
+        Text(label, style: const TextStyle(fontSize: 12), textAlign: TextAlign.center),
+      ],
+    );
+  }
+
+  Widget _reservationItem(BuildContext context, String short, String title, String subtitle, String status, Color statusColor) {
+    return Container(
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: AdminDashboardStyles.cardRadius,
+        border: Border.all(color: AdminDashboardStyles.primary.withOpacity(0.10)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: AdminDashboardStyles.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(8.0)),
+                alignment: Alignment.center,
+                child: Text(short, style: TextStyle(color: AdminDashboardStyles.primary, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: AdminDashboardStyles.smallMuted(context)),
+                ],
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(color: statusColor.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
+            child: Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600, fontSize: 12)),
+          )
         ],
       ),
     );

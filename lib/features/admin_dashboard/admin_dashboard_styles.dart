@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class AdminDashboardStyles {
   // Colors
+    static Color background(BuildContext context) => Theme.of(context).scaffoldBackgroundColor;
   static const Color backgroundLight = Color(0xFFF6F8F6);
   static const Color backgroundDark = Color(0xFF102216);
   static const Color cardDark = Color(0xFF1A3322);
