@@ -10,26 +10,39 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _bgLight = Color(0xFFF6F8F6);
   static const Color _bgDark = Color(0xFF102216);
-  static const Color _surfaceDark = Color(0xFF1C3022);
-  static const Color _borderDark = Color(0xFF2A4230);
+  static const Color _surfaceDark = Color(0xFF1C2E21);
+  static const Color _inputDark = Color(0xFF28392E);
 
   @override
   void dispose() {
     _fullNameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _handleRegister() {
+    if (_formKey.currentState?.validate() ?? false) {
+      // TODO: implement registration logic
+      Navigator.pop(context); // Go back to login
+    }
   }
 
   @override
@@ -37,218 +50,252 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final bgColor = isDark ? _bgDark : _bgLight;
-    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final subtitleColor = isDark
-        ? const Color(0xFF94A3B8)
-        : const Color(0xFF64748B);
-    final inputBg = isDark ? _surfaceDark : Colors.white;
-    final borderColor = isDark ? _borderDark : const Color(0xFFE2E8F0);
+    final cardColor = isDark ? _surfaceDark : Colors.white;
+    final inputBg = isDark ? _inputDark : const Color(0xFFF8FAFC); // slate-50
+    final textColor = isDark
+        ? Colors.white
+        : const Color(0xFF0F172A); // slate-900
+    final labelColor = isDark
+        ? const Color(0xFFCBD5E1)
+        : const Color(0xFF334155); // slate-300/700
+    final hintColor = isDark
+        ? const Color(0xFF9DB9A6)
+        : const Color(0xFF94A3B8); // slate-400
+    final borderColor = isDark
+        ? Colors.transparent
+        : const Color(0xFFCBD5E1); // slate-300
     final iconColor = isDark
-        ? const Color(0xFF64748B)
-        : const Color(0xFF94A3B8);
+        ? const Color(0xFF9DB9A6)
+        : const Color(0xFF94A3B8); // slate-400
 
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
+            constraints: const BoxConstraints(maxWidth: 480),
             child: Column(
               children: [
-                _buildHeader(textColor),
-                Expanded(
-                  // SingleChildScrollView cho phép cuộn khi bàn phím hiện lên
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Create an Account',
-                                style: GoogleFonts.manrope(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.42,
-                                  color: textColor,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Join your team to manage tables efficiently.',
-                                style: GoogleFonts.manrope(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w400,
-                                  color: subtitleColor,
-                                ),
-                              ),
-                            ],
+                // TopAppBar
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.maybePop(context),
+                        icon: const Icon(Icons.arrow_back),
+                        color: textColor,
+                        style: IconButton.styleFrom(
+                          shape: const CircleBorder(),
+                        ),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 48.0),
+                          child: Text(
+                            'Register',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.015,
+                              color: textColor,
+                            ),
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 8,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Main Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 24,
+                    ),
+                    child: Column(
+                      children: [
+                        // Form Card
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              if (!isDark)
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 4,
+                                ),
+                            ],
                           ),
                           child: Form(
                             key: _formKey,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                const SizedBox(height: 12),
-                                _buildLabel('Full Name', textColor),
-                                const SizedBox(height: 8),
                                 _buildTextField(
                                   controller: _fullNameController,
-                                  hintText: 'e.g. John Doe',
-                                  suffixIcon: Icons.person_outline,
-                                  keyboardType: TextInputType.name,
-                                  textCapitalization: TextCapitalization.words,
+                                  labelText: 'Full Name',
+                                  hintText: 'Enter full name',
                                   inputBg: inputBg,
                                   borderColor: borderColor,
-                                  iconColor: iconColor,
                                   textColor: textColor,
-                                  isDark: isDark,
-                                  validator: (v) =>
-                                      (v == null || v.trim().isEmpty)
-                                      ? 'Please enter your full name'
-                                      : null,
+                                  labelColor: labelColor,
+                                  hintColor: hintColor,
                                 ),
-                                const SizedBox(height: 20),
-                                _buildLabel('Email Address', textColor),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 16),
                                 _buildTextField(
                                   controller: _emailController,
-                                  hintText: 'name@restaurant.com',
-                                  suffixIcon: Icons.mail_outline,
+                                  labelText: 'Email',
+                                  hintText: 'Enter email',
                                   keyboardType: TextInputType.emailAddress,
                                   inputBg: inputBg,
                                   borderColor: borderColor,
-                                  iconColor: iconColor,
                                   textColor: textColor,
-                                  isDark: isDark,
-                                  validator: (v) {
-                                    if (v == null || v.trim().isEmpty) {
-                                      return 'Please enter your email';
-                                    }
-                                    if (!v.contains('@')) {
-                                      return 'Enter a valid email';
-                                    }
-                                    return null;
-                                  },
+                                  labelColor: labelColor,
+                                  hintColor: hintColor,
                                 ),
-                                const SizedBox(height: 20),
-                                _buildLabel('Password', textColor),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 16),
+                                _buildTextField(
+                                  controller: _phoneController,
+                                  labelText: 'Phone Number',
+                                  hintText: 'Enter phone number',
+                                  keyboardType: TextInputType.phone,
+                                  inputBg: inputBg,
+                                  borderColor: borderColor,
+                                  textColor: textColor,
+                                  labelColor: labelColor,
+                                  hintColor: hintColor,
+                                ),
+                                const SizedBox(height: 16),
+                                _buildTextField(
+                                  controller: _usernameController,
+                                  labelText: 'Username',
+                                  hintText: 'Enter username',
+                                  inputBg: inputBg,
+                                  borderColor: borderColor,
+                                  textColor: textColor,
+                                  labelColor: labelColor,
+                                  hintColor: hintColor,
+                                ),
+                                const SizedBox(height: 16),
                                 _buildTextField(
                                   controller: _passwordController,
-                                  hintText: 'Create a strong password',
-                                  suffixIcon: _obscurePassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  onSuffixTap: () => setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  ),
+                                  labelText: 'Password',
+                                  hintText: 'Enter password',
                                   obscureText: _obscurePassword,
                                   inputBg: inputBg,
                                   borderColor: borderColor,
-                                  iconColor: iconColor,
                                   textColor: textColor,
-                                  isDark: isDark,
-                                  validator: (v) {
-                                    if (v == null || v.isEmpty) {
-                                      return 'Please enter a password';
-                                    }
-                                    if (v.length < 6) {
-                                      return 'Password must be at least 6 characters';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 20),
-                                _buildLabel('Confirm Password', textColor),
-                                const SizedBox(height: 8),
-                                _buildTextField(
-                                  controller: _confirmPasswordController,
-                                  hintText: 'Re-enter your password',
-                                  suffixIcon: _obscureConfirmPassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  onSuffixTap: () => setState(
-                                    () => _obscureConfirmPassword =
-                                        !_obscureConfirmPassword,
-                                  ),
-                                  obscureText: _obscureConfirmPassword,
-                                  inputBg: inputBg,
-                                  borderColor: borderColor,
-                                  iconColor: iconColor,
-                                  textColor: textColor,
-                                  isDark: isDark,
-                                  validator: (v) {
-                                    if (v == null || v.isEmpty) {
-                                      return 'Please confirm your password';
-                                    }
-                                    if (v != _passwordController.text) {
-                                      return 'Passwords do not match';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 28),
-                                SizedBox(
-                                  height: 48,
-                                  child: ElevatedButton(
-                                    onPressed: _handleRegister,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: _primary,
-                                      foregroundColor: const Color(0xFF102216),
-                                      elevation: 4,
-                                      shadowColor: _primary.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      shape: const StadiumBorder(),
-                                    ),
-                                    child: Text(
-                                      'Create Account',
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.24,
-                                      ),
+                                  labelColor: labelColor,
+                                  hintColor: hintColor,
+                                  suffixWidget: IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                      color: iconColor,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Already have an account? ',
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 14,
-                                        color: subtitleColor,
-                                      ),
+                                _buildTextField(
+                                  controller: _confirmPasswordController,
+                                  labelText: 'Confirm Password',
+                                  hintText: 'Re-enter password',
+                                  obscureText: _obscureConfirmPassword,
+                                  inputBg: inputBg,
+                                  borderColor: borderColor,
+                                  textColor: textColor,
+                                  labelColor: labelColor,
+                                  hintColor: hintColor,
+                                  suffixWidget: IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscureConfirmPassword =
+                                            !_obscureConfirmPassword;
+                                      });
+                                    },
+                                    icon: Icon(
+                                      _obscureConfirmPassword
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                      color: iconColor,
                                     ),
-                                    GestureDetector(
-                                      onTap: () => Navigator.maybePop(context),
-                                      child: Text(
-                                        'Log In',
-                                        style: GoogleFonts.manrope(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: _primary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Action Buttons
+                        Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: _handleRegister,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _primary,
+                                  foregroundColor: const Color(0xFF0A1A10),
+                                  elevation: 4,
+                                  shadowColor: _primary.withValues(alpha: 0.2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Register',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Already have an account? ',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF475569),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () => Navigator.maybePop(context),
+                                  child: Text(
+                                    'Login',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: _primary,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: _primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                          ],
                         ),
                       ],
                     ),
@@ -262,122 +309,67 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildHeader(Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.maybePop(context),
-            icon: const Icon(Icons.arrow_back),
-            color: textColor,
-            style: IconButton.styleFrom(
-              shape: const CircleBorder(),
-              padding: const EdgeInsets.all(12),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'Register',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.27,
-                color: textColor,
-              ),
-            ),
-          ),
-          const SizedBox(width: 48),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLabel(String text, Color color) {
-    return Text(
-      text,
-      style: GoogleFonts.manrope(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        color: color,
-      ),
-    );
-  }
-
   Widget _buildTextField({
     required TextEditingController controller,
+    required String labelText,
     required String hintText,
-    required IconData suffixIcon,
     required Color inputBg,
     required Color borderColor,
-    required Color iconColor,
     required Color textColor,
-    required bool isDark,
+    required Color labelColor,
+    required Color hintColor,
     TextInputType keyboardType = TextInputType.text,
-    TextCapitalization textCapitalization = TextCapitalization.none,
     bool obscureText = false,
-    VoidCallback? onSuffixTap,
-    String? Function(String?)? validator,
+    Widget? suffixWidget,
   }) {
-    final suffixWidget = onSuffixTap != null
-        ? IconButton(
-            onPressed: onSuffixTap,
-            icon: Icon(suffixIcon, color: iconColor, size: 20),
-          )
-        : Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Icon(suffixIcon, color: iconColor, size: 20),
-          );
-
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      textCapitalization: textCapitalization,
-      obscureText: obscureText,
-      validator: validator,
-      style: GoogleFonts.manrope(fontSize: 16, color: textColor),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: GoogleFonts.manrope(
-          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            labelText,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: labelColor,
+            ),
+          ),
         ),
-        filled: true,
-        fillColor: inputBg,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          style: GoogleFonts.inter(fontSize: 16, color: textColor),
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: GoogleFonts.inter(color: hintColor),
+            filled: true,
+            fillColor: inputBg,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+            suffixIcon: suffixWidget,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: borderColor == Colors.transparent
+                  ? BorderSide.none
+                  : BorderSide(color: borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: borderColor == Colors.transparent
+                  ? BorderSide.none
+                  : BorderSide(color: borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: _primary, width: 1),
+            ),
+          ),
         ),
-        suffixIcon: suffixWidget,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: _primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.redAccent),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-        ),
-      ),
+      ],
     );
-  }
-
-  void _handleRegister() {
-    // validate() chạy tất cả validator của các TextFormField trong Form
-    // Nếu tất cả đều hợp lệ thì mới thực hiện logic đăng ký
-    if (_formKey.currentState?.validate() ?? false) {
-      // TODO: implement registration logic (gọi API, lưu token, navigate...)
-    }
   }
 }
