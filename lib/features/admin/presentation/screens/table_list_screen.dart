@@ -246,7 +246,7 @@ class _TableListScreenState extends State<TableListScreen> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            '${_countByStatus}',
+                            '$_countByStatus',
                             style: GoogleFonts.manrope(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
