@@ -400,7 +400,7 @@ class _AddEditTableScreenState extends State<AddEditTableScreen> {
           ),
         ),
         DropdownButtonFormField<String>(
-          value: _selectedArea,
+          initialValue: _selectedArea,
           hint: Text(
             'Select an area',
             style: GoogleFonts.manrope(color: subtitleColor),
