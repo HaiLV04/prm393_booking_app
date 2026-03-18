@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/reset_password.dart';
-import 'package:prm393_booking_app/features/customer_home/presentation/screens/customer_home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -35,10 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleLogin() {
     if (_formKey.currentState?.validate() ?? false) {
       // TODO: implement login logic
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const CustomerHomeScreen()),
-      );
+      Navigator.pushReplacementNamed(context, '/staff/dashboard');
     }
   }
 
