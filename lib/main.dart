@@ -24,7 +24,7 @@ class GourmetHavenApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Gourmet Haven',
       theme: AppTheme.light,
-      initialRoute: '/admin',
+      initialRoute: '/login',
       routes: {
         '/admin/dashboard': (_) => const AdminDashboardScreen(),
         '/login': (_) => const LoginScreen(),

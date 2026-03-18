@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _bgLight = Color(0xFFF6F8F6);
@@ -38,10 +41,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _handleRegister() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // TODO: implement registration logic
-      Navigator.pop(context); // Go back to login
+  Future<void> _handleRegister() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final url = Uri.parse('http://10.0.2.2:5200/api/auth/register');
+      
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'fullName': _fullNameController.text,
+          'email': _emailController.text,
+          'phone': _phoneController.text,
+          'username': _usernameController.text,
+          'password': _passwordController.text,
+          'role': 'staff', // Send default role as in backend model
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['isSuccess'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Registration successful. Please login.')),
+          );
+          Navigator.pop(context); // Go back to login
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Registration failed')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error connecting to server (Ensure backend is running)')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -246,7 +303,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               width: double.infinity,
                               height: 56,
                               child: ElevatedButton(
-                                onPressed: _handleRegister,
+                                onPressed: _isLoading ? null : _handleRegister,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: _primary,
                                   foregroundColor: const Color(0xFF0A1A10),
@@ -256,13 +313,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                                child: Text(
-                                  'Register',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 24,
+                                        width: 24,
+                                        child: CircularProgressIndicator(
+                                          color: Color(0xFF0A1A10),
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : Text(
+                                        'Register',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                               ),
                             ),
                             const SizedBox(height: 24),
