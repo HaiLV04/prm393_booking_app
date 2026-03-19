@@ -45,9 +45,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
@@ -56,8 +56,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final url = Uri.parse('http://localhost:5200/api/auth/register');
-      
+      final url = Uri.parse('http://10.0.2.2:5200/api/auth/register');
+
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -76,7 +76,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (response.statusCode == 200 && data['isSuccess'] == true) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Registration successful. Please login.')),
+            SnackBar(
+              content: Text(
+                data['message'] ?? 'Registration successful. Please login.',
+              ),
+            ),
           );
           Navigator.pop(context); // Go back to login
         }
@@ -90,7 +94,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error connecting to server (Ensure backend is running)')),
+          const SnackBar(
+            content: Text(
+              'Error connecting to server (Ensure backend is running)',
+            ),
+          ),
         );
       }
     } finally {
