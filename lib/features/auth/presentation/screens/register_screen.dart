@@ -56,7 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final url = Uri.parse('http://10.0.2.2:5200/api/auth/register');
+      final url = Uri.parse('http://localhost:5200/api/auth/register');
       
       final response = await http.post(
         url,

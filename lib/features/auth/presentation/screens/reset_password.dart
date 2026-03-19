@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -15,6 +18,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscureCurrentPassword = true;
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _bgLight = Color(0xFFF6F8F6);
@@ -28,9 +32,82 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     super.dispose();
   }
 
-  void _handleSave() {
-    // TODO: implement save logic
-    Navigator.pop(context);
+  Future<void> _handleSave() async {
+    final currentPassword = _currentPasswordController.text;
+    final newPassword = _newPasswordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('New passwords do not match')),
+      );
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 8 characters')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token') ?? '';
+
+      final url = Uri.parse('http://localhost:5200/api/auth/change-password');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['isSuccess'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Password changed successfully')),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Failed to change password')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error connecting to server')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -195,7 +272,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               child: SizedBox(
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _handleSave,
+                  onPressed: _isLoading ? null : _handleSave,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _primary,
                     foregroundColor: const Color(0xFF102216),
@@ -204,20 +281,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.save),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Save Changes',
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                  child: _isLoading 
+                      ? const SizedBox(
+                          height: 24, 
+                          width: 24, 
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF102216), 
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.save),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Save Changes',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),

@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // 10.0.2.2 is used for Android emulator to connect to localhost on host machine
       // If you run on iOS Simulator or Web, you should use localhost instead of 10.0.2.2
-      final url = Uri.parse('http://10.0.2.2:5200/api/auth/login');
+      final url = Uri.parse('http://localhost:5200/api/auth/login');
 
       final response = await http.post(
         url,
