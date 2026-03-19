@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:prm393_booking_app/features/staff_order/data/staff_order_repository.dart';
 import 'package:prm393_booking_app/features/staff_order/presentation/staff_theme.dart';
 
 class StaffOrderScreen extends StatefulWidget {
@@ -10,45 +11,163 @@ class StaffOrderScreen extends StatefulWidget {
 }
 
 class _StaffOrderScreenState extends State<StaffOrderScreen> {
-  int _activeCategory = 0;
+  final StaffOrderRepository _repository = StaffOrderRepository();
 
-  final List<_OrderItem> _items = [
-    _OrderItem(
-      name: 'Goi ngo sen tom thit',
-      price: 125000,
-      quantity: 1,
-      image:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuAMYMfmTM8DopTFL1s_NCP_jm7GVL8Z44wv-YfPU26xDh81dUAGM_CnZF_bbyCh7uJvs4aSsZAvDtZr858z6szIc3IjJMb2mre0nkyujfyudobB0P4GjbktDbg_jytFgj9Of9mr4KhpEo101QAlkWzkRJwEJD4mMmqgvVuThKHrfbUPT3jQMLgbz0SC3S1ENA3d3cx2MntxO_hlRdthzBNH8VOFIxPKgNuW2g_wg6OPNEG-zX7D7vr5i1l3Gqr6LwKXl4_WrszNG-I',
-    ),
-    _OrderItem(
-      name: 'Nem ran Ha Noi',
-      price: 95000,
-      quantity: 0,
-      image:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuBUmuFeFn-QDSF8OQwt_3OTBtMUv9zyYlJhDoTlOCcHm29n1MhR9I4gcc3nmit6v7GZDwpb1oYVJEu3gY44VVheaO_L2Gt7hDfMzziBHJemyblz1eWgOfN_51mPo_2cB5yyXYIvPqS6n0kbqYdtS8VoRib_l2-kVAtaExTeR4M1I4xbtSx_bBP7y_gQ5iMUYn6Hkq5tJhlnESYT326wY7ZqkaKXZ0gQOZWcIXnlZpRoK0JDsJaGswzAAY0To27GKamVChv6NXicvXI',
-    ),
-    _OrderItem(
-      name: 'Bo bit tet sot tieu den',
-      price: 285000,
-      quantity: 2,
-      image:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDUCez-M5YN9_0Z9a1AbGDzRvzGAQ84cMJhbOfQA6MV03teBoR-PDpcyYQPbgVwNmSoJdba5tAxs0Un9y4YiJ2zyJhHU1yh4x-a6xRivvxu_mEhlCKO3zYNG9Vqep1BjZFaUqdLQt8eztTiIGAVJUS4RBo3ku4ZO2ti7aN1lkQkRbbQMdGwQ_H2tJozEM6MEPFjHItimn4Yl9ZdwWtUezUAN9N4uuuYlifbZPFkds8dYfdPRvOAeOG5NmlfZTBpcPRciJZAPwEwxSk',
-    ),
-    _OrderItem(
-      name: 'Ca hoi ap chao',
-      price: 320000,
-      quantity: 0,
-      image:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCbQzDYFi_psaxdhYDJ440fg0LjjgljQgUzOS0THpK3_sWbq2cO5_4NnJe2l2PHkvkYMULXDgsGwPB5EIpMwIK0nJgiXAGrXaIVATrHbuGrGoHh0oD_QUCeLNaDYPUMFwvkV94a_R2RwUDy3DtfX3-g4vHC7PgYUeH3_ukvXEQh5hyBBrtptpUyOplSnzcQkmSM45ljdyc0d41Fn5cIH-uKuIf1d088zHQF63xMYxB7ylzsto9xdYXlDvPNWzE25n3vncDyNw4kV68',
-    ),
-  ];
+  StaffOrderContext? _context;
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+  String? _error;
 
-  final List<String> _categories = [
-    'Khai vi',
-    'Mon chinh',
-    'Do uong',
-    'Trang mieng',
-  ];
+  List<CategoryData> _categories = <CategoryData>[];
+  List<MenuItemData> _menuItems = <MenuItemData>[];
+  final Map<int, int> _selectedQty = <int, int>{};
+  final Map<int, int> _syncedQty = <int, int>{};
+  final Map<int, double> _priceByMenuItemId = <int, double>{};
+
+  int? _activeCategoryId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isLoading) {
+      _initialize();
+    }
+  }
+
+  Future<void> _initialize() async {
+    try {
+      final routeContext = ModalRoute.of(context)?.settings.arguments;
+      _context = routeContext is StaffOrderContext
+          ? routeContext
+          : await _repository.getActiveContext();
+
+      if (_context == null) {
+        setState(() {
+          _error = 'Khong tim thay order dang phuc vu.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final categories = await _repository.getCategories();
+      final activeCategoryId = categories.isNotEmpty ? categories.first.id : null;
+      final menuItems = await _repository.getMenuItems(categoryId: activeCategoryId);
+      final items = await _repository.getOrderItems(_context!.orderId);
+
+      final synced = <int, int>{
+        for (final item in items) item.menuItemId: item.quantity,
+      };
+      for (final item in items) {
+        _priceByMenuItemId[item.menuItemId] = item.unitPrice;
+      }
+      for (final item in menuItems) {
+        _priceByMenuItemId[item.id] = item.price;
+      }
+
+      setState(() {
+        _categories = categories;
+        _activeCategoryId = activeCategoryId;
+        _menuItems = menuItems;
+        _syncedQty
+          ..clear()
+          ..addAll(synced);
+        _selectedQty
+          ..clear()
+          ..addAll(synced);
+        _error = null;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _changeCategory(int categoryId) async {
+    setState(() {
+      _activeCategoryId = categoryId;
+      _isLoading = true;
+    });
+
+    try {
+      final menuItems = await _repository.getMenuItems(categoryId: categoryId);
+      for (final item in menuItems) {
+        _priceByMenuItemId[item.id] = item.price;
+      }
+      setState(() {
+        _menuItems = menuItems;
+        _error = null;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _changeQuantity(int menuItemId, int delta) {
+    final current = _selectedQty[menuItemId] ?? 0;
+    final synced = _syncedQty[menuItemId] ?? 0;
+    final next = current + delta;
+    setState(() {
+      // Backend currently supports adding quantity only, so do not allow going below synced.
+      _selectedQty[menuItemId] = next < synced ? synced : next;
+    });
+  }
+
+  Future<void> _submitAndOpenOrder() async {
+    if (_context == null || _isSubmitting) {
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      for (final entry in _selectedQty.entries) {
+        final currentSynced = _syncedQty[entry.key] ?? 0;
+        final delta = entry.value - currentSynced;
+        if (delta > 0) {
+          await _repository.addOrderItem(
+            orderId: _context!.orderId,
+            menuItemId: entry.key,
+            quantity: delta,
+          );
+          _syncedQty[entry.key] = entry.value;
+        }
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      await Navigator.pushNamed(
+        context,
+        '/staff/order-detail',
+        arguments: _context,
+      );
+
+      // Reload after returning from detail screen.
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+      await _initialize();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,13 +175,13 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
     final bg = isDark ? StaffTheme.backgroundDark : StaffTheme.backgroundLight;
     final cardColor = isDark ? const Color(0xFF1A2E21) : Colors.white;
     final borderColor = StaffTheme.primary.withValues(alpha: 0.2);
-    final mutedColor = isDark
-        ? const Color(0xFF94A3B8)
-        : const Color(0xFF64748B);
+    final mutedColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
-    final cartItems = _items.where((item) => item.quantity > 0).toList();
-    final totalQuantity = cartItems.fold<int>(0, (sum, item) => sum + item.quantity);
-    final totalAmount = cartItems.fold<int>(0, (sum, item) => sum + item.quantity * item.price);
+    final totalQty = _selectedQty.values.fold<int>(0, (sum, qty) => sum + qty);
+    final totalAmount = _selectedQty.entries.fold<double>(0, (sum, entry) {
+      final unitPrice = _priceByMenuItemId[entry.key] ?? 0;
+      return sum + entry.value * unitPrice;
+    });
 
     return Scaffold(
       backgroundColor: bg,
@@ -77,36 +196,93 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
                   padding: const EdgeInsets.only(bottom: 94),
                   child: Column(
                     children: [
-                      _buildHeader(context, isDark),
+                      _buildHeader(isDark),
                       _buildCategories(),
                       Expanded(
-                        child: GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          itemCount: _items.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: 0.66,
-                              ),
-                          itemBuilder: (context, index) {
-                            final item = _items[index];
-                            return _buildMenuCard(
-                              item: item,
-                              cardColor: cardColor,
-                              borderColor: borderColor,
-                              mutedColor: mutedColor,
-                              onAdd: () => _changeQuantity(index, 1),
-                              onRemove: () => _changeQuantity(index, -1),
-                            );
-                          },
-                        ),
+                        child: _isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : _error != null
+                                ? Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20),
+                                      child: Text(_error!, textAlign: TextAlign.center),
+                                    ),
+                                  )
+                                : GridView.builder(
+                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                    itemCount: _menuItems.length,
+                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                      childAspectRatio: 0.66,
+                                    ),
+                                    itemBuilder: (context, index) {
+                                      final item = _menuItems[index];
+                                      final qty = _selectedQty[item.id] ?? 0;
+                                      return _menuCard(
+                                        item: item,
+                                        quantity: qty,
+                                        cardColor: cardColor,
+                                        borderColor: borderColor,
+                                        mutedColor: mutedColor,
+                                      );
+                                    },
+                                  ),
                       ),
                     ],
                   ),
                 ),
-                _buildCartBar(context, totalQuantity, totalAmount, isDark),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    margin: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF162A1E) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: StaffTheme.primary.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: StaffTheme.primary.withValues(alpha: 0.2),
+                          ),
+                          child: const Center(child: Icon(Icons.shopping_cart, color: StaffTheme.primary)),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Tong cong', style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
+                              Text(_formatVnd(totalAmount), style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: StaffTheme.primary,
+                            foregroundColor: const Color(0xFF0F172A),
+                          ),
+                          onPressed: totalQty == 0 || _isSubmitting ? null : _submitAndOpenOrder,
+                          icon: _isSubmitting
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.arrow_forward),
+                          label: const Text('Xem Order'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -115,23 +291,22 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isDark) {
+  Widget _buildHeader(bool isDark) {
+    final title = _context == null
+        ? 'Order Screen'
+        : '${_context!.tableName} - ${_context!.guestCount} khach';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: StaffTheme.primary.withValues(alpha: 0.12)),
-        ),
+        border: Border(bottom: BorderSide(color: StaffTheme.primary.withValues(alpha: 0.12))),
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back),
-          ),
+          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back)),
           Expanded(
             child: Text(
-              'Ban 01 • 3 khach',
+              title,
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 18,
@@ -140,7 +315,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
               ),
             ),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
+          IconButton(onPressed: _initialize, icon: const Icon(Icons.refresh)),
         ],
       ),
     );
@@ -153,37 +328,35 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index) {
-          final active = _activeCategory == index;
+          final category = _categories[index];
+          final active = _activeCategoryId == category.id;
           return ChoiceChip(
             label: Text(
-              _categories[index],
+              category.name,
               style: GoogleFonts.inter(
                 fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                color: active
-                    ? const Color(0xFF0F172A)
-                    : Theme.of(context).colorScheme.onSurface,
+                color: active ? const Color(0xFF0F172A) : Theme.of(context).colorScheme.onSurface,
               ),
             ),
             selected: active,
             selectedColor: StaffTheme.primary,
             backgroundColor: StaffTheme.primary.withValues(alpha: 0.12),
             side: BorderSide.none,
-            onSelected: (_) => setState(() => _activeCategory = index),
+            onSelected: (_) => _changeCategory(category.id),
           );
         },
-        separatorBuilder: (context, _) => const SizedBox(width: 8),
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
         itemCount: _categories.length,
       ),
     );
   }
 
-  Widget _buildMenuCard({
-    required _OrderItem item,
+  Widget _menuCard({
+    required MenuItemData item,
+    required int quantity,
     required Color cardColor,
     required Color borderColor,
     required Color mutedColor,
-    required VoidCallback onAdd,
-    required VoidCallback onRemove,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -199,18 +372,8 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
                 image: DecorationImage(
-                  image: NetworkImage(item.image),
+                  image: NetworkImage(item.imageUrl.isNotEmpty ? item.imageUrl : 'https://picsum.photos/300/300'),
                   fit: BoxFit.cover,
-                ),
-              ),
-              child: Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Color(0x99000000), Color(0x00000000)],
-                  ),
                 ),
               ),
             ),
@@ -220,19 +383,11 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                ),
+                Text(item.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
-                Text(
-                  _formatVnd(item.price),
-                  style: GoogleFonts.inter(fontSize: 12, color: mutedColor),
-                ),
+                Text(_formatVnd(item.price), style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
                 const SizedBox(height: 8),
-                if (item.quantity > 0)
+                if (quantity > 0)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
@@ -241,16 +396,12 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
                     ),
                     child: Row(
                       children: [
-                        _qtyButton(Icons.remove, onRemove),
+                        _qtyButton(Icons.remove, () => _changeQuantity(item.id, -1)),
                         SizedBox(
                           width: 24,
-                          child: Text(
-                            item.quantity.toString(),
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-                          ),
+                          child: Text(quantity.toString(), textAlign: TextAlign.center, style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
                         ),
-                        _qtyButton(Icons.add, onAdd),
+                        _qtyButton(Icons.add, () => _changeQuantity(item.id, 1)),
                       ],
                     ),
                   )
@@ -262,7 +413,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
                         backgroundColor: StaffTheme.primary.withValues(alpha: 0.15),
                         foregroundColor: StaffTheme.primary,
                       ),
-                      onPressed: onAdd,
+                      onPressed: () => _changeQuantity(item.id, 1),
                       icon: const Icon(Icons.add),
                     ),
                   ),
@@ -282,157 +433,17 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
     );
   }
 
-  Widget _buildCartBar(
-    BuildContext context,
-    int totalQuantity,
-    int totalAmount,
-    bool isDark,
-  ) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        margin: const EdgeInsets.all(10),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF162A1E) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: StaffTheme.primary.withValues(alpha: 0.25)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: StaffTheme.primary.withValues(alpha: 0.2),
-              ),
-              child: Stack(
-                children: [
-                  const Center(
-                    child: Icon(Icons.shopping_cart, color: StaffTheme.primary),
-                  ),
-                  if (totalQuantity > 0)
-                    Positioned(
-                      top: 1,
-                      right: 1,
-                      child: Container(
-                        width: 18,
-                        height: 18,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          color: StaffTheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          totalQuantity.toString(),
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0F172A),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Tong cong',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: isDark
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF64748B),
-                    ),
-                  ),
-                  Text(
-                    _formatVnd(totalAmount),
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: StaffTheme.primary,
-                foregroundColor: const Color(0xFF0F172A),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              ),
-              onPressed: totalQuantity == 0
-                  ? null
-                  : () => Navigator.pushNamed(context, '/staff/order-detail'),
-              icon: const Icon(Icons.arrow_forward),
-              label: const Text('Xem Order'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _changeQuantity(int index, int delta) {
-    setState(() {
-      final next = _items[index].quantity + delta;
-      _items[index] = _items[index].copyWith(quantity: next < 0 ? 0 : next);
-    });
-  }
-
-  String _formatVnd(int amount) {
-    final raw = amount.toString();
+  String _formatVnd(num amount) {
+    final rounded = amount.round().toString();
     final buffer = StringBuffer();
     var count = 0;
-    for (var i = raw.length - 1; i >= 0; i--) {
-      buffer.write(raw[i]);
+    for (var i = rounded.length - 1; i >= 0; i--) {
+      buffer.write(rounded[i]);
       count++;
       if (count % 3 == 0 && i != 0) {
         buffer.write('.');
       }
     }
     return '${buffer.toString().split('').reversed.join()}d';
-  }
-}
-
-class _OrderItem {
-  const _OrderItem({
-    required this.name,
-    required this.price,
-    required this.quantity,
-    required this.image,
-  });
-
-  final String name;
-  final int price;
-  final int quantity;
-  final String image;
-
-  _OrderItem copyWith({
-    String? name,
-    int? price,
-    int? quantity,
-    String? image,
-  }) {
-    return _OrderItem(
-      name: name ?? this.name,
-      price: price ?? this.price,
-      quantity: quantity ?? this.quantity,
-      image: image ?? this.image,
-    );
   }
 }
