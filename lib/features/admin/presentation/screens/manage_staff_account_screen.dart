@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ManageStaffAccountScreen extends StatefulWidget {
   const ManageStaffAccountScreen({super.key});
@@ -15,44 +18,92 @@ class _ManageStaffAccountScreenState extends State<ManageStaffAccountScreen> {
 
   final TextEditingController _searchController = TextEditingController();
 
-  final List<_StaffItem> _staff = [
-    _StaffItem(
-      name: 'Nguyen Van A',
-      email: 'nguyenvana@email.com',
-      role: 'Admin',
-      avatarUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDPH8RJv14WDN32sVTWoZo3jtbEyxzxa8KB37I4z2FTz4Cd7zeFiq_czsA66hhoXFKA67svPQzIqDPyfEMc_UUAnG4tLylkBZ_amKqr8kIhfDlU0jLgbb2MifytE1fYxMEZNpOya2bsQoDvN0l3XsNTIdJLa6dz3yI_MYVEqfzh7Ai2jciO8wtklK3_5psMHvLcrscLxUxFezrWO6TFXxiBEPNlBCWyLGcfLIHtxI8YziGl3TOsHNS45MvcY82YWtZ-Omsvpnony4I',
-      isActive: true,
-      isAdmin: true,
-    ),
-    _StaffItem(
-      name: 'Tran Thi B',
-      email: 'tranthib@email.com',
-      role: 'Staff',
-      avatarUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDYMZthLIIDxDu4wuwsC0DigfM9v2R-0g_TuJajtm-dVTqNGADzuLMg7GbmEnJHlX8-1U3wY2Q-he9_8Hzp-p8oYwXBUilDCenga_wxpLWlRbaIu8xr6kDNQDWP3JxfJuhzGYWdJ5HD77CikjMxwVzMcvjefGDODZkt2Ss33qJnBUADNiJWcZy3Uc3RgnoRwVSSMrza2It1pzl3tmeoa8nF-MX8f4CMGpFi0lF5jfB0CasoUbldx7eAQMn3ahkOWIhf2FtbiTNtwO8',
-      isActive: true,
-      isAdmin: false,
-    ),
-    _StaffItem(
-      name: 'Le Van C',
-      email: 'levanc@email.com',
-      role: 'Staff',
-      avatarUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuAjkpzt_KmHwo35F8QnOu9xJmFKN2rA63pSmXA8Ehk3IGE5s8eodJvOmCbp1Fd1jy1004hNHtQwHUkAcBruJPqDlYYe3teYm4GLuvNwA6bar1HhKx5YLdrUQNftSJ18L9m9yP-K6sE3N66WTh4R13ue6HedmdpvVEY8SdMgR3mk3MgsuIWzPQ2dOmar4FfGC_h6nTS3kt2ehifjU4hfla0a6M5noaulogIcBA3sbflFUsqK0-7csf-miS3MYrJMiPQoFQTuNtc06HY',
-      isActive: false,
-      isAdmin: false,
-    ),
-    _StaffItem(
-      name: 'Pham Thi D',
-      email: 'phamthid@email.com',
-      role: 'Staff',
-      avatarUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuAXMK_EvDdSkDgeYfWLeoSCoQ3Em5SXEMWLecTw_VtzGK6fKWqRnnq-EHBaxe6XptM9_jsiYPv6d-XiHKo0MLnKNXqxmk_HlqEewfor5bb_8Se7tOSElgny6ZcGOhPpTqPpCxukkvExFMNTQ88-OvNM7rFiRfeNLrtHzqbW4wWbzTj6P-7IhLoMnBz9Y9StPZoUZgXRpNthWRt_2m-1w5TerRXMPN3nbMniUOTDPzYUlMrQsB6-DwuMRp1kK7Q5UR6P15Z5otZYEbQ',
-      isActive: true,
-      isAdmin: false,
-    ),
-  ];
+  List<_StaffItem> _staff = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStaffList();
+  }
+
+  Future<void> _fetchStaffList() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token') ?? '';
+
+      final url = Uri.parse('http://localhost:5200/api/admin/staff');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['isSuccess'] == true) {
+        final items = data['data']['items'] as List<dynamic>? ?? [];
+        if (mounted) {
+          setState(() {
+            _staff = items.map((e) => _StaffItem(
+              id: e['id'],
+              name: e['fullName'] ?? 'Unknown',
+              email: e['email'] ?? 'N/A',
+              role: e['role']?.toString().toUpperCase() ?? 'STAFF',
+              avatarUrl: 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(e['fullName'] ?? 'Unknown')}&background=random',
+              isActive: e['isActive'] ?? false,
+              isAdmin: e['role']?.toString().toLowerCase() == 'admin',
+            )).toList();
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleStaffActive(_StaffItem item, bool newValue) async {
+    final oldState = item.isActive;
+    setState(() => item.isActive = newValue);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token') ?? '';
+
+      final url = Uri.parse('http://localhost:5200/api/admin/staff/${item.id}/active');
+      final response = await http.patch(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'isActive': newValue,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode != 200 || data['isSuccess'] != true) {
+        setState(() => item.isActive = oldState);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Failed to update status')),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => item.isActive = oldState);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error connecting to server')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -119,78 +170,80 @@ class _ManageStaffAccountScreenState extends State<ManageStaffAccountScreen> {
                   ),
                 ),
                 Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.only(top: 6, bottom: 90),
-                    itemCount: staffFiltered.length,
-                    separatorBuilder: (_, __) => Divider(
-                      height: 1,
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.black.withValues(alpha: 0.08),
-                    ),
-                    itemBuilder: (context, index) {
-                      final item = staffFiltered[index];
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 6,
+                  child: _isLoading 
+                    ? const Center(child: CircularProgressIndicator(color: _primary))
+                    : ListView.separated(
+                        padding: const EdgeInsets.only(top: 6, bottom: 90),
+                        itemCount: staffFiltered.length,
+                        separatorBuilder: (_, __) => Divider(
+                          height: 1,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.black.withValues(alpha: 0.08),
                         ),
-                        leading: CircleAvatar(
-                          radius: 24,
-                          backgroundImage: NetworkImage(item.avatarUrl),
-                        ),
-                        title: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item.name,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
-                                  color: item.isActive ? textColor : muted,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                        itemBuilder: (context, index) {
+                          final item = staffFiltered[index];
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 6,
                             ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(999),
-                                color: item.isAdmin
-                                    ? _primary.withValues(alpha: 0.2)
-                                    : (isDark
-                                          ? Colors.white.withValues(alpha: 0.1)
-                                          : Colors.black.withValues(alpha: 0.06)),
-                              ),
-                              child: Text(
-                                item.role,
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  color: item.isAdmin ? _primary : muted,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                            leading: CircleAvatar(
+                              radius: 24,
+                              backgroundImage: NetworkImage(item.avatarUrl),
                             ),
-                          ],
-                        ),
-                        subtitle: Text(
-                          item.email,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(color: muted, fontSize: 12),
-                        ),
-                        trailing: Switch(
-                          value: item.isActive,
-                          activeColor: _primary,
-                          onChanged: (value) {
-                            setState(() => item.isActive = value);
-                          },
-                        ),
-                      );
-                    },
-                  ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      color: item.isActive ? textColor : muted,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(999),
+                                    color: item.isAdmin
+                                        ? _primary.withValues(alpha: 0.2)
+                                        : (isDark
+                                              ? Colors.white.withValues(alpha: 0.1)
+                                              : Colors.black.withValues(alpha: 0.06)),
+                                  ),
+                                  child: Text(
+                                    item.role,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      color: item.isAdmin ? _primary : muted,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            subtitle: Text(
+                              item.email,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(color: muted, fontSize: 12),
+                            ),
+                            trailing: Switch(
+                              value: item.isActive,
+                              activeColor: _primary,
+                              onChanged: (value) {
+                                _toggleStaffActive(item, value);
+                              },
+                            ),
+                          );
+                        },
+                      ),
                 ),
               ],
             ),
@@ -203,6 +256,7 @@ class _ManageStaffAccountScreenState extends State<ManageStaffAccountScreen> {
 
 class _StaffItem {
   _StaffItem({
+    required this.id,
     required this.name,
     required this.email,
     required this.role,
@@ -210,6 +264,8 @@ class _StaffItem {
     required this.isActive,
     required this.isAdmin,
   });
+
+  final int id;
 
   final String name;
   final String email;

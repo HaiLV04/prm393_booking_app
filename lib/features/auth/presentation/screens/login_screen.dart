@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:prm393_booking_app/core/network/api_client.dart';
-import 'package:prm393_booking_app/core/network/auth_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:prm393_booking_app/features/staff_profile/presentation/screens/manage_profile_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/reset_password.dart';
 
@@ -19,8 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  final ApiClient _apiClient = ApiClient();
-  final AuthStorage _authStorage = AuthStorage();
 
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _bgLight = Color(0xFFF6F8F6);
@@ -44,48 +44,44 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final json = await _apiClient.post(
-        '/api/auth/login',
-        requiresAuth: false,
-        body: {
+      // 10.0.2.2 is used for Android emulator to connect to localhost on host machine
+      // If you run on iOS Simulator or Web, you should use localhost instead of 10.0.2.2
+      final url = Uri.parse('http://10.0.2.2:5200/api/auth/login');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
           'username': _usernameController.text,
           'password': _passwordController.text,
-        },
+        }),
       );
 
-      final success = json['success'] == true;
-      final data = (json['data'] as Map<String, dynamic>? ?? <String, dynamic>{});
-      final user = (data['user'] as Map<String, dynamic>? ?? <String, dynamic>{});
+      final data = jsonDecode(response.body);
 
-      if (success) {
-        final token = (data['token'] ?? '').toString();
-        if (token.isNotEmpty) {
-          await _authStorage.saveToken(token);
+      if (response.statusCode == 200 && data['isSuccess'] == true) {
+        // Optional: Save token to shared preferences
+        final prefs = await SharedPreferences.getInstance();
+        if (data['data'] != null && data['data']['token'] != null) {
+          await prefs.setString('auth_token', data['data']['token']);
         }
 
-        final role = (user['role'] ?? '').toString().toLowerCase();
-
         if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
+          Navigator.pushReplacement(
             context,
-            role == 'admin' ? '/admin' : '/staff/dashboard',
-            (route) => false,
+            MaterialPageRoute(
+              builder: (context) => const ManageProfileScreen(),
+            ),
           );
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text((json['message'] ?? 'Login failed').toString())),
+            SnackBar(content: Text(data['message'] ?? 'Login failed')),
           );
         }
       }
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
