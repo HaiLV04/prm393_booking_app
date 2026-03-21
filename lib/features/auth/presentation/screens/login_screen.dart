@@ -46,8 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // 10.0.2.2 is used for Android emulator to connect to localhost on host machine
       // If you run on iOS Simulator or Web, you should use localhost instead of 10.0.2.2
-      final url = Uri.parse('http://10.0.2.2:5200/api/auth/login');
-
+      final url = Uri.parse('http://localhost:5200/api/auth/login');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -66,13 +65,27 @@ class _LoginScreenState extends State<LoginScreen> {
           await prefs.setString('auth_token', data['data']['token']);
         }
 
+        // Read role from different possible response shapes
+        final role = (data['data']?['role'] ??
+                data['data']?['user']?['role'] ??
+                data['role'])
+            ?.toString()
+            .toLowerCase();
+        if (role != null) {
+          await prefs.setString('user_role', role);
+        }
+
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ManageProfileScreen(),
-            ),
-          );
+          if (role == 'admin') {
+            Navigator.pushReplacementNamed(context, '/admin');
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ManageProfileScreen(),
+              ),
+            );
+          }
         }
       } else {
         if (mounted) {
