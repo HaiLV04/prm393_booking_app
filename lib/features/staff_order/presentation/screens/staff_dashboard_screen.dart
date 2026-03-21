@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:prm393_booking_app/features/staff_order/data/staff_order_repository.dart';
-import 'package:prm393_booking_app/features/staff_order/presentation/staff_theme.dart';
+import 'package:prm393_booking_app/features/staff_order/presentation/staff_design_system.dart';
+import 'package:prm393_booking_app/features/staff_order/presentation/widgets/staff_widgets.dart';
 
 class StaffDashboardScreen extends StatefulWidget {
   const StaffDashboardScreen({super.key});
@@ -13,6 +13,7 @@ class StaffDashboardScreen extends StatefulWidget {
 class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
   final StaffOrderRepository _repository = StaffOrderRepository();
   late Future<_DashboardVm> _dashboardFuture;
+  int _selectedNavIndex = 0;
 
   @override
   void initState() {
@@ -50,32 +51,29 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
       todayCount: todayCount,
       servingCount: servingCount,
       capacityPercent: capacity,
+      occupiedTables: occupiedTables,
+      totalTables: tables.length,
       activeContext: activeContext,
       notices: latest.take(3).toList(),
     );
   }
 
-  void _openOrder(StaffOrderContext? context) {
-    if (context == null) {
-      ScaffoldMessenger.of(this.context).showSnackBar(
-        const SnackBar(content: Text('Khong tim thay ban dang phuc vu de goi mon.')),
+  void _openOrder(BuildContext context, StaffOrderContext? orderCtx) {
+    if (orderCtx == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không tìm thấy bàn đang phục vụ để gọi món.')),
       );
       return;
     }
-    Navigator.pushNamed(this.context, '/staff/order', arguments: context);
+    Navigator.pushNamed(context, '/staff/order', arguments: orderCtx).then((_) {
+      setState(() => _dashboardFuture = _loadDashboard());
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background = isDark ? StaffTheme.backgroundDark : StaffTheme.backgroundLight;
-    final cardColor = isDark ? StaffTheme.cardDark : Colors.white;
-    final borderColor = isDark ? StaffTheme.borderDark : const Color(0xFFE2E8F0);
-    final titleColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final mutedColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-
     return Scaffold(
-      backgroundColor: background,
+      backgroundColor: context.backgroundColor,
       body: SafeArea(
         child: FutureBuilder<_DashboardVm>(
           future: _dashboardFuture,
@@ -85,23 +83,12 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
             }
 
             if (snapshot.hasError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Khong tai duoc du lieu dashboard', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 8),
-                      Text('${snapshot.error}', textAlign: TextAlign.center),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => setState(() => _dashboardFuture = _loadDashboard()),
-                        child: const Text('Thu lai'),
-                      ),
-                    ],
-                  ),
-                ),
+              return EmptyState(
+                icon: Icons.error_outline,
+                title: 'Không tải được dữ liệu',
+                description: snapshot.error.toString(),
+                actionLabel: 'Thử lại',
+                onAction: () => setState(() => _dashboardFuture = _loadDashboard()),
               );
             }
 
@@ -111,156 +98,45 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 430),
-                child: Column(
+                child: Stack(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: StaffTheme.primary.withValues(alpha: 0.3), width: 2),
-                            ),
-                            child: const Icon(Icons.person_outline),
+                    ListView(
+                      padding: const EdgeInsets.only(bottom: 80),
+                      children: [
+                        StaffAppHeader(
+                          title: 'Bảng điều khiển',
+                          subtitle: 'Nhân viên',
+                          onRefresh: () => setState(() => _dashboardFuture = _loadDashboard()),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: StaffDesignSystem.spacing16,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Nhan vien', style: GoogleFonts.inter(fontSize: 11, color: mutedColor, fontWeight: FontWeight.w600)),
-                                Text('Man hinh order', style: GoogleFonts.inter(fontSize: 17, color: titleColor, fontWeight: FontWeight.w700)),
-                              ],
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Key Metrics Section
+                              _buildMetricsSection(vm),
+                              const SizedBox(height: StaffDesignSystem.spacing32),
+                              
+                              // Quick Actions Section
+                              _buildQuickActionsSection(vm),
+                              const SizedBox(height: StaffDesignSystem.spacing32),
+                              
+                              // Recent Activity Section
+                              _buildRecentActivitySection(vm),
+                              const SizedBox(height: StaffDesignSystem.spacing16),
+                            ],
                           ),
-                          IconButton(
-                            onPressed: () => setState(() => _dashboardFuture = _loadDashboard()),
-                            icon: const Icon(Icons.refresh),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              color: cardColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: borderColor),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.analytics_outlined, color: StaffTheme.primary, size: 18),
-                                    const SizedBox(width: 8),
-                                    Text('TINH TRANG HIEN TAI', style: GoogleFonts.inter(fontSize: 11, color: StaffTheme.primary, fontWeight: FontWeight.w700, letterSpacing: 1)),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Hom nay: ${vm.todayCount} ban da dat | ${vm.servingCount} ban dang phuc vu',
-                                  style: GoogleFonts.inter(fontSize: 20, height: 1.3, color: titleColor, fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 14),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(999),
-                                  child: LinearProgressIndicator(
-                                    value: (vm.capacityPercent / 100).clamp(0, 1),
-                                    minHeight: 8,
-                                    backgroundColor: borderColor,
-                                    color: StaffTheme.primary,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text('Cong suat: ${vm.capacityPercent}%', style: GoogleFonts.inter(fontSize: 13, color: mutedColor)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Text('Loi tat nhanh', style: GoogleFonts.inter(fontSize: 16, color: titleColor, fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 12),
-                          GridView.count(
-                            crossAxisCount: 2,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                            childAspectRatio: 1.15,
-                            children: [
-                              _actionCard(cardColor, borderColor, Icons.table_restaurant, 'So do ban', () {}),
-                              _actionCard(cardColor, borderColor, Icons.event_available, 'Dat cho moi', () {}),
-                              _actionCard(cardColor, borderColor, Icons.restaurant_menu, 'Thuc don', () => _openOrder(vm.activeContext)),
-                              _actionCard(cardColor, borderColor, Icons.bar_chart, 'Thong ke', () {}),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Thong bao moi nhat', style: GoogleFonts.inter(fontSize: 16, color: titleColor, fontWeight: FontWeight.w700)),
-                              TextButton(onPressed: () {}, child: const Text('Xem tat ca')),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          for (final notice in vm.notices)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(14),
-                                onTap: () {
-                                  if (notice.orderId != null) {
-                                    Navigator.pushNamed(
-                                      context,
-                                      '/staff/order-detail',
-                                      arguments: StaffOrderContext(
-                                        tableId: notice.tableId,
-                                        tableName: notice.tableName,
-                                        reservationId: notice.id,
-                                        orderId: notice.orderId!,
-                                        guestCount: notice.guestCount,
-                                        checkInTime: notice.checkInTime,
-                                        customerName: notice.customerName,
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: Ink(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14), border: Border.all(color: borderColor)),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(color: StaffTheme.primary.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(10)),
-                                        child: const Icon(Icons.receipt_long, color: StaffTheme.primary),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('${notice.tableName} vua dat mon', style: GoogleFonts.inter(color: titleColor, fontWeight: FontWeight.w600)),
-                                            const SizedBox(height: 2),
-                                            Text('${notice.customerName} - ${notice.guestCount} khach', style: GoogleFonts.inter(color: mutedColor, fontSize: 12)),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                    // Bottom Navigation
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: _buildBottomNavigation(),
                     ),
                   ],
                 ),
@@ -272,55 +148,198 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
     );
   }
 
-  Widget _actionCard(
-    Color cardColor,
-    Color borderColor,
-    IconData icon,
-    String label,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildMetricsSection(_DashboardVm vm) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SectionHeader(title: 'Tình trạng hiện tại'),
+        const SizedBox(height: StaffDesignSystem.spacing16),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: StaffDesignSystem.spacing12,
+          mainAxisSpacing: StaffDesignSystem.spacing12,
+          childAspectRatio: 1.2,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: StaffTheme.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Icon(icon, color: StaffTheme.primary),
+            MetricCard(
+              icon: Icons.calendar_today_outlined,
+              label: 'Đặt hôm nay',
+              value: '${vm.todayCount}',
+              color: StaffDesignSystem.info,
             ),
-            const SizedBox(height: 10),
-            Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            MetricCard(
+              icon: Icons.people_alt_outlined,
+              label: 'Đang phục vụ',
+              value: '${vm.servingCount}',
+              color: StaffDesignSystem.success,
+            ),
+            MetricCard(
+              icon: Icons.table_chart_outlined,
+              label: 'Bàn được chiếm',
+              value: '${vm.occupiedTables}/${vm.totalTables}',
+              color: StaffDesignSystem.warning,
+            ),
+            MetricCard(
+              icon: Icons.trending_up,
+              label: 'Công suất',
+              value: '${vm.capacityPercent}',
+              unit: '%',
+              color: StaffDesignSystem.primary,
+            ),
           ],
         ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActionsSection(_DashboardVm vm) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SectionHeader(title: 'Các tác vụ nhanh'),
+        const SizedBox(height: StaffDesignSystem.spacing16),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: StaffDesignSystem.spacing12,
+          mainAxisSpacing: StaffDesignSystem.spacing12,
+          childAspectRatio: 1.0,
+          children: [
+            QuickActionCard(
+              icon: Icons.restaurant_menu,
+              label: 'Gọi món',
+              description: 'Thêm món cho bàn',
+              onTap: () => _openOrder(context, vm.activeContext),
+              color: StaffDesignSystem.primary,
+            ),
+            QuickActionCard(
+              icon: Icons.table_restaurant,
+              label: 'Sơ đồ bàn',
+              description: 'Xem trạng thái bàn',
+              onTap: () {},
+              color: StaffDesignSystem.info,
+            ),
+            QuickActionCard(
+              icon: Icons.receipt_long,
+              label: 'Thanh toán',
+              description: 'Xử lý hóa đơn',
+              onTap: () {},
+              color: StaffDesignSystem.warning,
+            ),
+            QuickActionCard(
+              icon: Icons.event_available,
+              label: 'Đặt chỗ mới',
+              description: 'Tạo đặt phòng',
+              onTap: () {},
+              color: StaffDesignSystem.success,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivitySection(_DashboardVm vm) {
+    if (vm.notices.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SectionHeader(title: 'Hoạt động gần đây'),
+          const SizedBox(height: StaffDesignSystem.spacing16),
+          EmptyState(
+            icon: Icons.history_outlined,
+            title: 'Không có hoạt động',
+            description: 'Chưa có thay đổi trạng thái gần đây',
+            iconColor: StaffDesignSystem.primary.withValues(alpha: 0.3),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SectionHeader(title: 'Hoạt động gần đây'),
+        const SizedBox(height: StaffDesignSystem.spacing12),
+        ...vm.notices.map((reservation) => Padding(
+          padding: const EdgeInsets.only(bottom: StaffDesignSystem.spacing12),
+          child: ListItemCard(
+            title: 'Bàn ${reservation.tableName}',
+            subtitle: '${reservation.guestCount} khách - ${reservation.customerName}',
+            leadingIcon: Icons.event_seat,
+            badge: StaffDesignSystem.getStatusLabel(reservation.status),
+            badgeColor: StaffDesignSystem.getStatusColor(reservation.status),
+          ),
+        )),
+      ],
+    );
+  }
+
+  Widget _buildBottomNavigation() {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        border: Border(
+          top: BorderSide(color: context.borderColor),
+        ),
+      ),
+      child: BottomNavigationBar(
+        currentIndex: _selectedNavIndex,
+        onTap: (index) => setState(() => _selectedNavIndex = index),
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        selectedItemColor: StaffDesignSystem.primary,
+        unselectedItemColor: context.textSecondary,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_outlined),
+            activeIcon: Icon(Icons.dashboard),
+            label: 'Bảng điều khiển',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.table_chart_outlined),
+            activeIcon: Icon(Icons.table_chart),
+            label: 'Bàn',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long_outlined),
+            activeIcon: Icon(Icons.receipt_long),
+            label: 'Đơn hàng',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Tài khoản',
+          ),
+        ],
       ),
     );
   }
 }
 
 class _DashboardVm {
-  const _DashboardVm({
-    required this.todayCount,
-    required this.servingCount,
-    required this.capacityPercent,
-    required this.activeContext,
-    required this.notices,
-  });
-
   final int todayCount;
   final int servingCount;
   final int capacityPercent;
+  final int occupiedTables;
+  final int totalTables;
   final StaffOrderContext? activeContext;
   final List<ReservationData> notices;
+
+  _DashboardVm({
+    required this.todayCount,
+    required this.servingCount,
+    required this.capacityPercent,
+    required this.occupiedTables,
+    required this.totalTables,
+    required this.activeContext,
+    required this.notices,
+  });
 }
