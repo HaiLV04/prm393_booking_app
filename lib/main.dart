@@ -5,6 +5,8 @@ import 'package:prm393_booking_app/features/customer_cart/presentation/screens/c
 import 'package:prm393_booking_app/features/customer_home/presentation/screens/customer_home_screen.dart';
 import 'package:prm393_booking_app/features/customer_menu/presentation/screens/customer_menu_screen.dart';
 import 'package:prm393_booking_app/features/customer_profile/presentation/screens/customer_profile_screen.dart';
+import 'package:prm393_booking_app/features/reservation/presentation/screens/create_reservation_screen.dart';
+import 'package:prm393_booking_app/features/reservation/presentation/screens/reservation_list_screen.dart';
 import 'package:prm393_booking_app/theme/app_theme.dart';
 
 void main() {
@@ -20,7 +22,7 @@ class GourmetHavenApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Gourmet Haven',
       theme: AppTheme.light,
-      initialRoute: '/home',
+      initialRoute: '/reservations',
       routes: {
         '/login': (_) => const LoginScreen(),
         '/home': (_) => const CustomerHomeScreen(),
@@ -29,6 +31,10 @@ class GourmetHavenApp extends StatelessWidget {
         '/my-bookings': (_) => const MyBookingsScreen(),
         '/cart': (_) => const CustomerCartScreen(),
         '/profile': (_) => const CustomerProfileScreen(),
+
+        //reservation
+        '/reservations': (_) => const ReservationListScreen(),
+        '/create_reservations': (_) => const CreateReservationScreen(),
       },
     );
   }
