@@ -7,8 +7,7 @@ class StaffOrderRepository {
 
   Future<List<CategoryData>> getCategories() async {
     final json = await _apiClient.get('/api/categories');
-    final data = (json['data'] as List<dynamic>? ?? <dynamic>[])
-        .cast<Map<String, dynamic>>();
+    final data = _extractListData(json);
 
     return data
         .map(CategoryData.fromJson)
@@ -30,9 +29,7 @@ class StaffOrderRepository {
       query: query,
     );
 
-    final paged = json['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
-    final items = (paged['items'] as List<dynamic>? ?? <dynamic>[])
-        .cast<Map<String, dynamic>>();
+    final items = _extractPagedItems(json);
     return items.map(MenuItemData.fromJson).toList();
   }
 
@@ -41,9 +38,7 @@ class StaffOrderRepository {
       '/api/tables',
       query: {'page': 1, 'pageSize': 100},
     );
-    final paged = json['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
-    final items = (paged['items'] as List<dynamic>? ?? <dynamic>[])
-        .cast<Map<String, dynamic>>();
+    final items = _extractPagedItems(json);
     return items.map(TableData.fromJson).toList();
   }
 
@@ -57,9 +52,7 @@ class StaffOrderRepository {
       },
     );
 
-    final paged = json['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
-    final items = (paged['items'] as List<dynamic>? ?? <dynamic>[])
-        .cast<Map<String, dynamic>>();
+    final items = _extractPagedItems(json);
     return items.map(ReservationData.fromJson).toList();
   }
 
@@ -71,8 +64,7 @@ class StaffOrderRepository {
 
   Future<List<OrderItemData>> getOrderItems(int orderId) async {
     final json = await _apiClient.get('/api/orders/$orderId/items');
-    final data = (json['data'] as List<dynamic>? ?? <dynamic>[])
-        .cast<Map<String, dynamic>>();
+    final data = _extractListData(json);
     return data.map(OrderItemData.fromJson).toList();
   }
 
@@ -145,6 +137,38 @@ class StaffOrderRepository {
 
     const closed = <String>{'cancelled', 'completed', 'checkedout', 'finished'};
     return !closed.contains(normalized);
+  }
+
+  List<Map<String, dynamic>> _extractListData(Map<String, dynamic> json) {
+    final data = json['data'];
+    if (data is List) {
+      return data.whereType<Map<String, dynamic>>().toList();
+    }
+
+    if (data is Map<String, dynamic>) {
+      final items = data['items'];
+      if (items is List) {
+        return items.whereType<Map<String, dynamic>>().toList();
+      }
+    }
+
+    return <Map<String, dynamic>>[];
+  }
+
+  List<Map<String, dynamic>> _extractPagedItems(Map<String, dynamic> json) {
+    final data = json['data'];
+    if (data is Map<String, dynamic>) {
+      final items = data['items'];
+      if (items is List) {
+        return items.whereType<Map<String, dynamic>>().toList();
+      }
+    }
+
+    if (data is List) {
+      return data.whereType<Map<String, dynamic>>().toList();
+    }
+
+    return <Map<String, dynamic>>[];
   }
 }
 
