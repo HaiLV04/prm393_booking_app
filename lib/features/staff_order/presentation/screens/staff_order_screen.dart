@@ -50,8 +50,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
       }
 
       final categories = await _repository.getCategories();
-      final activeCategoryId = categories.isNotEmpty ? categories.first.id : null;
-      final menuItems = await _repository.getMenuItems(categoryId: activeCategoryId);
+      final menuItems = await _repository.getMenuItems();
       final items = await _repository.getOrderItems(_context!.orderId);
 
       final synced = <int, int>{
@@ -66,7 +65,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
 
       setState(() {
         _categories = categories;
-        _activeCategoryId = activeCategoryId;
+        _activeCategoryId = null;
         _menuItems = menuItems;
         _syncedQty
           ..clear()
@@ -85,7 +84,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
     }
   }
 
-  Future<void> _changeCategory(int categoryId) async {
+  Future<void> _changeCategory(int? categoryId) async {
     setState(() {
       _activeCategoryId = categoryId;
       _isLoading = true;
@@ -208,27 +207,38 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
                                       child: Text(_error!, textAlign: TextAlign.center),
                                     ),
                                   )
-                                : GridView.builder(
-                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                    itemCount: _menuItems.length,
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      crossAxisSpacing: 12,
-                                      mainAxisSpacing: 12,
-                                      childAspectRatio: 0.66,
-                                    ),
-                                    itemBuilder: (context, index) {
-                                      final item = _menuItems[index];
-                                      final qty = _selectedQty[item.id] ?? 0;
-                                      return _menuCard(
-                                        item: item,
-                                        quantity: qty,
-                                        cardColor: cardColor,
-                                        borderColor: borderColor,
-                                        mutedColor: mutedColor,
-                                      );
-                                    },
-                                  ),
+                                : _menuItems.isEmpty
+                                    ? Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(20),
+                                          child: Text(
+                                            'Khong co mon nao trong danh muc nay.',
+                                            textAlign: TextAlign.center,
+                                            style: GoogleFonts.inter(color: mutedColor),
+                                          ),
+                                        ),
+                                      )
+                                    : GridView.builder(
+                                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                        itemCount: _menuItems.length,
+                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          crossAxisSpacing: 12,
+                                          mainAxisSpacing: 12,
+                                          childAspectRatio: 0.66,
+                                        ),
+                                        itemBuilder: (context, index) {
+                                          final item = _menuItems[index];
+                                          final qty = _selectedQty[item.id] ?? 0;
+                                          return _menuCard(
+                                            item: item,
+                                            quantity: qty,
+                                            cardColor: cardColor,
+                                            borderColor: borderColor,
+                                            mutedColor: mutedColor,
+                                          );
+                                        },
+                                      ),
                       ),
                     ],
                   ),
@@ -257,6 +267,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Tong cong', style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
@@ -328,11 +339,13 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index) {
-          final category = _categories[index];
-          final active = _activeCategoryId == category.id;
+          final isAllChip = index == 0;
+          final category = isAllChip ? null : _categories[index - 1];
+          final active = isAllChip ? _activeCategoryId == null : _activeCategoryId == category!.id;
+          final label = isAllChip ? 'Tat ca' : category!.name;
           return ChoiceChip(
             label: Text(
-              category.name,
+              label,
               style: GoogleFonts.inter(
                 fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                 color: active ? const Color(0xFF0F172A) : Theme.of(context).colorScheme.onSurface,
@@ -342,11 +355,11 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
             selectedColor: StaffTheme.primary,
             backgroundColor: StaffTheme.primary.withValues(alpha: 0.12),
             side: BorderSide.none,
-            onSelected: (_) => _changeCategory(category.id),
+            onSelected: (_) => _changeCategory(category?.id),
           );
         },
         separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemCount: _categories.length,
+        itemCount: _categories.length + 1,
       ),
     );
   }
@@ -368,14 +381,16 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                image: DecorationImage(
-                  image: NetworkImage(item.imageUrl.isNotEmpty ? item.imageUrl : 'https://picsum.photos/300/300'),
-                  fit: BoxFit.cover,
-                ),
-              ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              child: item.imageUrl.trim().isEmpty
+                  ? _menuImagePlaceholder()
+                  : Image.network(
+                      item.imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (_, __, ___) => _menuImagePlaceholder(),
+                    ),
             ),
           ),
           Padding(
@@ -430,6 +445,18 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
       borderRadius: BorderRadius.circular(999),
       onTap: onTap,
       child: SizedBox(width: 24, height: 24, child: Icon(icon, size: 18)),
+    );
+  }
+
+  Widget _menuImagePlaceholder() {
+    return Container(
+      color: StaffTheme.primary.withValues(alpha: 0.08),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.restaurant_menu,
+        color: StaffTheme.primary,
+        size: 32,
+      ),
     );
   }
 

@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:prm393_booking_app/core/network/api_client.dart';
+import 'package:http/http.dart' as http;
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -22,7 +23,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
-  final ApiClient _apiClient = ApiClient();
 
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _bgLight = Color(0xFFF6F8F6);
@@ -45,9 +45,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
@@ -56,25 +56,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final data = await _apiClient.post(
-        '/api/auth/register',
-        requiresAuth: false,
-        body: {
-          'fullName': _fullNameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'username': _usernameController.text.trim(),
+      final url = Uri.parse('http://localhost:5200/api/auth/register');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'fullName': _fullNameController.text,
+          'email': _emailController.text,
+          'phone': _phoneController.text,
+          'username': _usernameController.text,
           'password': _passwordController.text,
-          'role': 'staff',
-        },
+          'role': 'staff', // Send default role as in backend model
+        }),
       );
 
-      final success = data['success'] == true;
+      final data = jsonDecode(response.body);
 
-      if (success) {
+      if (response.statusCode == 200 && data['isSuccess'] == true) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Registration successful. Please login.')),
+            SnackBar(
+              content: Text(
+                data['message'] ?? 'Registration successful. Please login.',
+              ),
+            ),
           );
           Navigator.pop(context); // Go back to login
         }
@@ -85,16 +91,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
         }
       }
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error connecting to server (Ensure backend is running)')),
+          const SnackBar(
+            content: Text(
+              'Error connecting to server (Ensure backend is running)',
+            ),
+          ),
         );
       }
     } finally {
