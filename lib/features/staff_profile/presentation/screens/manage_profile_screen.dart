@@ -1,12 +1,84 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:prm393_booking_app/features/auth/presentation/screens/login_screen.dart';
 
-class ManageProfileScreen extends StatelessWidget {
+class ManageProfileScreen extends StatefulWidget {
   const ManageProfileScreen({super.key});
 
+  @override
+  State<ManageProfileScreen> createState() => _ManageProfileScreenState();
+}
+
+class _ManageProfileScreenState extends State<ManageProfileScreen> {
   static const Color _primary = Color(0xFF13EC5B);
   static const Color _lightBackground = Color(0xFFF6F8F6);
   static const Color _darkBackground = Color(0xFF102216);
+
+  bool _isLoading = true;
+  String _fullName = '';
+  String _email = '';
+  String _role = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token') ?? '';
+
+      final url = Uri.parse('http://localhost:5200/api/auth/me');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['isSuccess'] == true) {
+        if (mounted) {
+          setState(() {
+            _fullName = data['data']['fullName'] ?? 'N/A';
+            _email = data['data']['email'] ?? 'N/A';
+            _role = data['data']['role']?.toString().toUpperCase() ?? 'STAFF';
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'NA';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length > 1) {
+      return '${parts[0][0]}${parts.last[0]}'.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,172 +107,176 @@ class ManageProfileScreen extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    children: [
-                      Column(
-                        children: [
-                          Stack(
-                            children: [
-                              Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: isDark
-                                      ? const Color(0xFF1A2F20)
-                                      : const Color(0xFFE8F8ED),
-                                  border: Border.all(color: _primary, width: 4),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'NA',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.w700,
-                                      color: _primary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                right: 0,
-                                bottom: 0,
-                                child: Container(
-                                  width: 34,
-                                  height: 34,
-                                  decoration: BoxDecoration(
-                                    color: _primary,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: bgColor, width: 2),
-                                  ),
-                                  child: const Icon(
-                                    Icons.edit,
-                                    color: Color(0xFF102216),
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Nguyen Van An',
-                            style: GoogleFonts.inter(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'an.nguyen@restaurant.com',
-                            style: GoogleFonts.inter(
-                              color: muted,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _primary.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              'STAFF',
-                              style: GoogleFonts.inter(
-                                color: _primary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      _menuCard(
-                        context,
-                        cardColor: cardColor,
-                        icon: Icons.key,
-                        iconColor: _primary,
-                        title: 'Doi mat khau',
-                        subtitle: 'Bao mat tai khoan',
-                      ),
-                      const SizedBox(height: 10),
-                      _menuCard(
-                        context,
-                        cardColor: cardColor,
-                        icon: Icons.notifications,
-                        iconColor: _primary,
-                        title: 'Thong bao',
-                        subtitle: 'Cap nhat he thong',
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(color: _primary),
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                           children: [
-                            Container(
-                              width: 24,
-                              height: 24,
-                              alignment: Alignment.center,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                '3',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(Icons.chevron_right, color: muted),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      _menuCard(
-                        context,
-                        cardColor: cardColor.withValues(alpha: 0.6),
-                        icon: Icons.settings,
-                        iconColor: Colors.grey,
-                        title: 'Cai dat',
-                        subtitle: 'Chi danh cho quan tri vien',
-                        enabled: false,
-                        trailing: const Icon(Icons.lock, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 18),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {},
-                          borderRadius: BorderRadius.circular(12),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            Column(
                               children: [
-                                const Icon(Icons.logout, color: Colors.red),
-                                const SizedBox(width: 8),
+                                Stack(
+                                  children: [
+                                    Container(
+                                      width: 120,
+                                      height: 120,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: isDark
+                                            ? const Color(0xFF1A2F20)
+                                            : const Color(0xFFE8F8ED),
+                                        border: Border.all(color: _primary, width: 4),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          _getInitials(_fullName),
+                                          style: GoogleFonts.inter(
+                                            fontSize: 36,
+                                            fontWeight: FontWeight.w700,
+                                            color: _primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Container(
+                                        width: 34,
+                                        height: 34,
+                                        decoration: BoxDecoration(
+                                          color: _primary,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: bgColor, width: 2),
+                                        ),
+                                        child: const Icon(
+                                          Icons.edit,
+                                          color: Color(0xFF102216),
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
                                 Text(
-                                  'Dang xuat',
+                                  _fullName.isEmpty ? 'N/A' : _fullName,
                                   style: GoogleFonts.inter(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _email.isEmpty ? 'N/A' : _email,
+                                  style: GoogleFonts.inter(
+                                    color: muted,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _primary.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    _role,
+                                    style: GoogleFonts.inter(
+                                      color: _primary,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                      letterSpacing: 0.8,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
+                            const SizedBox(height: 18),
+                            _menuCard(
+                              context,
+                              cardColor: cardColor,
+                              icon: Icons.key,
+                              iconColor: _primary,
+                              title: 'Doi mat khau',
+                              subtitle: 'Bao mat tai khoan',
+                            ),
+                            const SizedBox(height: 10),
+                            _menuCard(
+                              context,
+                              cardColor: cardColor,
+                              icon: Icons.notifications,
+                              iconColor: _primary,
+                              title: 'Thong bao',
+                              subtitle: 'Cap nhat he thong',
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    alignment: Alignment.center,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '3',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(Icons.chevron_right, color: muted),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _menuCard(
+                              context,
+                              cardColor: cardColor.withValues(alpha: 0.6),
+                              icon: Icons.settings,
+                              iconColor: Colors.grey,
+                              title: 'Cai dat',
+                              subtitle: 'Chi danh cho quan tri vien',
+                              enabled: false,
+                              trailing: const Icon(Icons.lock, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 18),
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _handleLogout,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.logout, color: Colors.red),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Dang xuat',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),
