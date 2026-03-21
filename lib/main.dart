@@ -5,6 +5,9 @@ import 'package:prm393_booking_app/features/auth/presentation/screens/login_scre
 import 'package:prm393_booking_app/features/staff_order/presentation/screens/order_detail_status_screen.dart';
 import 'package:prm393_booking_app/features/staff_order/presentation/screens/staff_dashboard_screen.dart';
 import 'package:prm393_booking_app/features/staff_order/presentation/screens/staff_order_screen.dart';
+import 'package:prm393_booking_app/features/staff_order/presentation/screens/table_management_screen.dart';
+import 'package:prm393_booking_app/features/staff_order/presentation/screens/order_management_screen.dart';
+import 'package:prm393_booking_app/features/staff_order/presentation/screens/staff_profile_screen.dart';
 import 'package:prm393_booking_app/theme/app_theme.dart';
 
 void main() {
@@ -26,6 +29,9 @@ class GourmetHavenApp extends StatelessWidget {
         '/admin': (_) => const AdminHomeScreen(),
         '/admin/add-table': (_) => const AddEditTableScreen(),
         '/staff/dashboard': (_) => const StaffDashboardScreen(),
+        '/staff/tables': (_) => const TableManagementScreen(),
+        '/staff/orders': (_) => const OrderManagementScreen(),
+        '/staff/profile': (_) => const StaffProfileScreen(),
         '/staff/order': (_) => const StaffOrderScreen(),
         '/staff/order-detail': (_) => const OrderDetailStatusScreen(),
       },
