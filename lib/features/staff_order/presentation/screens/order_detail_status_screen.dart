@@ -165,7 +165,14 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
                       ),
                       child: Row(
                         children: [
-                          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back)),
+                          IconButton(
+                            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/staff/home',
+                              (route) => false,
+                            ),
+                            icon: const Icon(Icons.arrow_back),
+                          ),
                           Expanded(
                             child: Text(
                               vm.context.tableName,
