@@ -27,7 +27,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _selectedIndex = index;
     });
     final route = [
-      '/admin/dashboard',
+      '/admin',
       '/admin/areas',
       '/admin/notifications',
       '/admin/settings',
@@ -61,127 +61,127 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: const DecorationImage(
-                        fit: BoxFit.cover,
-                        image: NetworkImage(
-                          'https://static.vecteezy.com/system/resources/thumbnails/008/442/086/small/illustration-of-human-icon-user-symbol-icon-modern-design-on-blank-background-free-vector.jpg',
+                Row(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        image: const DecorationImage(
+                          fit: BoxFit.cover,
+                          image: NetworkImage(
+                            'https://static.vecteezy.com/system/resources/thumbnails/008/442/086/small/illustration-of-human-icon-user-symbol-icon-modern-design-on-blank-background-free-vector.jpg',
+                          ),
+                        ),
+                        border: Border.all(
+                          color: AdminDashboardStyles.primary.withOpacity(0.12),
+                          width: 2,
                         ),
                       ),
-                      border: Border.all(
-                        color: AdminDashboardStyles.primary.withOpacity(0.12),
-                        width: 2,
-                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Chào mừng, Admin',
-                        style: Theme.of(
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Chào mừng, Admin',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineMedium?.copyWith(fontSize: 20),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Quản lý nhà hàng của bạn',
+                          style: AdminDashboardStyles.smallMuted(context),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                FutureBuilder<DashboardData>(
+                  future: _dashboardDataFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final data =
+                        snapshot.data ??
+                        const DashboardData(
+                          totalTables: 0,
+                          occupiedTables: 0,
+                          todayOrders: 0,
+                          revenue: 0.0,
+                        );
+
+                    return GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 1.4,
+                      children: [
+                        _summaryCard(
                           context,
-                        ).textTheme.headlineMedium?.copyWith(fontSize: 20),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Quản lý nhà hàng của bạn',
-                        style: AdminDashboardStyles.smallMuted(context),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
+                          'Tổng bàn',
+                          data.totalTables.toString(),
+                          Icons.table_restaurant,
+                        ),
+                        _summaryCard(
+                          context,
+                          'Đang dùng',
+                          data.occupiedTables.toString(),
+                          Icons.groups,
+                        ),
+                        _summaryCard(
+                          context,
+                          'Order hôm nay',
+                          data.todayOrders.toString(),
+                          Icons.receipt_long,
+                        ),
+                        _summaryCard(
+                          context,
+                          'Doanh thu',
+                          '${(data.revenue / 1000000).toStringAsFixed(1)}M',
+                          Icons.payments,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
 
-              FutureBuilder<DashboardData>(
-                future: _dashboardDataFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final data =
-                      snapshot.data ??
-                      const DashboardData(
-                        totalTables: 0,
-                        occupiedTables: 0,
-                        todayOrders: 0,
-                        revenue: 0.0,
-                      );
-
-                  return GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1.4,
-                    children: [
-                      _summaryCard(
-                        context,
-                        'Tổng bàn',
-                        data.totalTables.toString(),
-                        Icons.table_restaurant,
-                      ),
-                      _summaryCard(
-                        context,
-                        'Đang dùng',
-                        data.occupiedTables.toString(),
-                        Icons.groups,
-                      ),
-                      _summaryCard(
-                        context,
-                        'Order hôm nay',
-                        data.todayOrders.toString(),
-                        Icons.receipt_long,
-                      ),
-                      _summaryCard(
-                        context,
-                        'Doanh thu',
-                        '${(data.revenue / 1000000).toStringAsFixed(1)}M',
-                        Icons.payments,
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-
-              Text(
-                'Quick Actions',
-                style: AdminDashboardStyles.headerTitle(context),
-              ),
-              const SizedBox(height: 8),
-              GridView.count(
-                crossAxisCount: 4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                children: [
-                  _actionButton(
-                    context,
-                    Icons.bar_chart,
-                    'Thống kê',
-                    () => Navigator.pushNamed(context, '/admin/statistics'),
-                  ),
-                  _actionButton(
-                    context,
-                    Icons.badge,
-                    'Nhân viên',
-                    () => Navigator.pushNamed(context, '/admin/staff'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
+                Text(
+                  'Quick Actions',
+                  style: AdminDashboardStyles.headerTitle(context),
+                ),
+                const SizedBox(height: 8),
+                GridView.count(
+                  crossAxisCount: 4,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  children: [
+                    _actionButton(
+                      context,
+                      Icons.bar_chart,
+                      'Thống kê',
+                      () => Navigator.pushNamed(context, '/admin/statistics'),
+                    ),
+                    _actionButton(
+                      context,
+                      Icons.badge,
+                      'Nhân viên',
+                      () => Navigator.pushNamed(context, '/admin/staff'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
             ],
           ),
         ),

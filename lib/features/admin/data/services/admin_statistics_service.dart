@@ -12,7 +12,7 @@ class AdminStatisticsService {
   /// Requires: Authorization header with token (admin only)
   Future<Map<String, dynamic>> getDashboardSummary() async {
     return await _apiClient.get(
-      '/admin/dashboard/summary',
+      '/api/admin/dashboard/summary',
       requiresAuth: true,
     );
   }
@@ -34,7 +34,7 @@ class AdminStatisticsService {
     }
 
     return await _apiClient.get(
-      '/admin/statistics/revenue',
+      '/api/admin/statistics/revenue',
       query: {'period': period},
       requiresAuth: true,
     );
@@ -50,11 +50,37 @@ class AdminStatisticsService {
     int limit = 10,
   }) async {
     return await _apiClient.get(
-      '/admin/statistics/top-items',
+      '/api/admin/statistics/top-items',
       query: {
         if (from != null) 'from': from.toIso8601String(),
         if (to != null) 'to': to.toIso8601String(),
         'limit': limit,
+      },
+      requiresAuth: true,
+    );
+  }
+
+  /// GET /api/admin/statistics/overview
+  /// Query params: { period: 'today' | 'week' | 'month', topLimit: 5 }
+  /// Response: { success, message, data: { revenue: {...}, topItems: [...] } }
+  Future<Map<String, dynamic>> getStatisticsOverview({
+    String period = 'today',
+    int topLimit = 5,
+  }) async {
+    const validPeriods = {'today', 'week', 'month'};
+    if (!validPeriods.contains(period)) {
+      throw ApiException(
+        message: 'Invalid period. Must be one of: today, week, month',
+        statusCode: 400,
+        body: {},
+      );
+    }
+
+    return await _apiClient.get(
+      '/api/admin/statistics/overview',
+      query: {
+        'period': period,
+        'topLimit': topLimit,
       },
       requiresAuth: true,
     );
@@ -67,7 +93,7 @@ class AdminStatisticsService {
   ///       from table status data or a dedicated endpoint
   Future<Map<String, dynamic>> getAreas() async {
     return await _apiClient.get(
-      '/areas',
+      '/api/areas',
       requiresAuth: true,
     );
   }
@@ -84,10 +110,10 @@ class AdminStatisticsService {
     int pageSize = 100, // Get all for statistics
   }) async {
     return await _apiClient.get(
-      '/tables',
+      '/api/tables',
       query: {
         if (areaId != null) 'areaId': areaId,
-        if (status != null) 'status': status,
+        if (status != null && status.isNotEmpty) 'status': status,
         'page': page,
         'pageSize': pageSize,
       },
@@ -107,7 +133,7 @@ class AdminStatisticsService {
   }) async {
     // This is a placeholder - check if backend supports this query
     return await _apiClient.get(
-      '/orders',
+      '/api/orders',
       query: {
         if (from != null) 'from': from.toIso8601String(),
         if (to != null) 'to': to.toIso8601String(),

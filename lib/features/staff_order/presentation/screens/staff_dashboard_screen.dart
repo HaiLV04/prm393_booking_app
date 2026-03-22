@@ -167,6 +167,9 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
     }
 
     Navigator.pushNamed(context, '/staff/order', arguments: selectedContext).then((_) {
+      if (!mounted) {
+        return;
+      }
       setState(() => _dashboardFuture = _loadDashboard());
     });
   }
@@ -504,6 +507,9 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
               description: 'Tạo đặt phòng',
               onTap: () {
                 Navigator.pushNamed(context, '/staff/reservation/create').then((_) {
+                  if (!mounted) {
+                    return;
+                  }
                   setState(() => _dashboardFuture = _loadDashboard());
                 });
               },
