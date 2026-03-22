@@ -64,6 +64,15 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
   }
 
   Future<void> _checkout({required int orderId, required double taxAmount}) async {
+    final reservationStatus = (_context?.reservationStatus ?? '').trim().toLowerCase();
+    final isReservationClosed = reservationStatus == 'cancelled' || reservationStatus == 'canceled';
+    if (isReservationClosed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đơn đã hủy, không thể thanh toán.')),
+      );
+      return;
+    }
+
     if (!_mealCompletedConfirmed) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng xác nhận khách đã ăn xong trước khi thanh toán.')),
@@ -155,8 +164,11 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
 
             final vm = snapshot.data!;
             final statusNormalized = vm.order.status.trim().toLowerCase();
+            final reservationStatus = (vm.context.reservationStatus ?? '').trim().toLowerCase();
+            final isCancelledReservation = reservationStatus == 'cancelled' || reservationStatus == 'canceled';
             final isCompletedOrder =
               statusNormalized == 'completed' || statusNormalized == 'checkedout' || statusNormalized == 'finished';
+            final isClosedOrder = isCompletedOrder || isCancelledReservation || statusNormalized == 'cancelled' || statusNormalized == 'canceled';
             final vat = vm.order.totalAmount * 0.08;
             final grandTotal = vm.order.invoiceFinalTotal ?? (vm.order.totalAmount + vat);
             final itemCount = vm.items.fold<int>(0, (sum, item) => sum + item.quantity);
@@ -224,7 +236,14 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
                                     style: StaffTypography.titleSmall(isDark),
                                   ),
                                 ),
-                                StatusBadge(status: isCompletedOrder ? 'completed' : 'serving', isSmall: true),
+                                StatusBadge(
+                                  status: isCancelledReservation
+                                      ? 'cancelled'
+                                      : isCompletedOrder
+                                          ? 'completed'
+                                          : 'serving',
+                                  isSmall: true,
+                                ),
                               ],
                             ),
                           ),
@@ -331,18 +350,29 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                if (isCompletedOrder)
+                                if (isClosedOrder)
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFEAF9F1),
+                                      color: isCancelledReservation
+                                          ? const Color(0xFFFDECEC)
+                                          : const Color(0xFFEAF9F1),
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: const Color(0xFF9FD8BC)),
+                                      border: Border.all(
+                                        color: isCancelledReservation
+                                            ? const Color(0xFFF5B2B2)
+                                            : const Color(0xFF9FD8BC),
+                                      ),
                                     ),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text('Đơn đã thanh toán và hoàn tất.', style: StaffTypography.titleSmall(isDark)),
+                                        Text(
+                                          isCancelledReservation
+                                              ? 'Đơn đã hủy, không thể gọi thêm món hoặc thanh toán.'
+                                              : 'Đơn đã thanh toán và hoàn tất.',
+                                          style: StaffTypography.titleSmall(isDark),
+                                        ),
                                         if ((vm.order.invoicePaymentMethod ?? '').isNotEmpty)
                                           Padding(
                                             padding: const EdgeInsets.only(top: 4),
