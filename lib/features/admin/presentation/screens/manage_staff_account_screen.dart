@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:prm393_booking_app/core/network/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ManageStaffAccountScreen extends StatefulWidget {
@@ -32,7 +33,7 @@ class _ManageStaffAccountScreenState extends State<ManageStaffAccountScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token') ?? '';
 
-      final url = Uri.parse('http://localhost:5200/api/admin/staff');
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/api/admin/staff');
       final response = await http.get(
         url,
         headers: {
@@ -42,7 +43,8 @@ class _ManageStaffAccountScreenState extends State<ManageStaffAccountScreen> {
       );
 
       final data = jsonDecode(response.body);
-      if (response.statusCode == 200 && data['isSuccess'] == true) {
+      final isSuccess = data['success'] == true || data['isSuccess'] == true;
+      if (response.statusCode == 200 && isSuccess) {
         final items = data['data']['items'] as List<dynamic>? ?? [];
         if (mounted) {
           setState(() {
@@ -74,7 +76,7 @@ class _ManageStaffAccountScreenState extends State<ManageStaffAccountScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token') ?? '';
 
-      final url = Uri.parse('http://localhost:5200/api/admin/staff/${item.id}/active');
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/api/admin/staff/${item.id}/active');
       final response = await http.patch(
         url,
         headers: {
@@ -87,7 +89,8 @@ class _ManageStaffAccountScreenState extends State<ManageStaffAccountScreen> {
       );
 
       final data = jsonDecode(response.body);
-      if (response.statusCode != 200 || data['isSuccess'] != true) {
+      final isSuccess = data['success'] == true || data['isSuccess'] == true;
+      if (response.statusCode != 200 || !isSuccess) {
         setState(() => item.isActive = oldState);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
