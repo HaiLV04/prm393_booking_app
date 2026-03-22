@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:prm393_booking_app/core/network/app_config.dart';
+import 'package:prm393_booking_app/features/auth/presentation/screens/reset_password.dart';
+import 'package:prm393_booking_app/features/staff_profile/presentation/screens/edit_profile_screen.dart';
 import 'package:prm393_booking_app/features/staff_order/presentation/staff_design_system.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,6 +18,7 @@ class ManageProfileScreen extends StatefulWidget {
 class _ManageProfileScreenState extends State<ManageProfileScreen> {
   static const Color _primary = StaffDesignSystem.primary;
 
+  int _selectedNavIndex = 3;
   bool _isLoading = true;
   String _fullName = '';
   String _email = '';
@@ -75,6 +78,25 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/login');
     }
+  }
+
+  Future<void> _openEditProfile() async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+    );
+
+    if (updated == true) {
+      setState(() => _isLoading = true);
+      await _fetchProfile();
+    }
+  }
+
+  Future<void> _openChangePassword() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
+    );
   }
 
   String _getInitials(String name) {
@@ -148,18 +170,22 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                                     Positioned(
                                       right: 0,
                                       bottom: 0,
-                                      child: Container(
-                                        width: 34,
-                                        height: 34,
-                                        decoration: BoxDecoration(
-                                          color: _primary,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: bgColor, width: 2),
-                                        ),
-                                        child: const Icon(
-                                          Icons.edit,
-                                          color: Color(0xFF0F172A),
-                                          size: 18,
+                                      child: InkWell(
+                                        onTap: _openEditProfile,
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Container(
+                                          width: 34,
+                                          height: 34,
+                                          decoration: BoxDecoration(
+                                            color: _primary,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: bgColor, width: 2),
+                                          ),
+                                          child: const Icon(
+                                            Icons.edit,
+                                            color: Color(0xFF102216),
+                                            size: 18,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -207,6 +233,17 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                             _menuCard(
                               context,
                               cardColor: cardColor,
+                              onTap: _openEditProfile,
+                              icon: Icons.edit,
+                              iconColor: _primary,
+                              title: 'Chinh sua thong tin',
+                              subtitle: 'Cap nhat email, so dien thoai',
+                            ),
+                            const SizedBox(height: 10),
+                            _menuCard(
+                              context,
+                              cardColor: cardColor,
+                              onTap: _openChangePassword,
                               icon: Icons.key,
                               iconColor: _primary,
                               title: 'Đổi mật khẩu',
@@ -288,9 +325,10 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
             ),
           ),
         ),
-      ),
+      )
     );
   }
+
 
   Widget _menuCard(
     BuildContext context, {
@@ -301,6 +339,7 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
     required String subtitle,
     Widget? trailing,
     bool enabled = true,
+    VoidCallback? onTap,
   }) {
     final muted = Theme.of(context).brightness == Brightness.dark
         ? const Color(0xFF9DB9A6)
@@ -333,7 +372,7 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
           style: GoogleFonts.inter(color: muted, fontSize: 12),
         ),
         trailing: trailing ?? Icon(Icons.chevron_right, color: muted),
-        onTap: enabled ? () {} : null,
+        onTap: enabled ? (onTap ?? () {}) : null,
       ),
     );
   }

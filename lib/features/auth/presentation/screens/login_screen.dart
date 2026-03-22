@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:prm393_booking_app/core/network/app_config.dart';
+import 'package:prm393_booking_app/features/admin/presentation/screens/manage_staff_account_screen.dart';
+import 'package:prm393_booking_app/features/staff_order/presentation/screens/staff_dashboard_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/register_screen.dart';
-import 'package:prm393_booking_app/features/auth/presentation/screens/reset_password.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -231,38 +232,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ? Icons.visibility
                                     : Icons.visibility_off,
                                 color: _textMuted,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-
-                          // Forgot Password
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const ResetPasswordScreen(),
-                                  ),
-                                );
-                              },
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 0,
-                                  vertical: 8,
-                                ),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                'Forgot Password?',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  color: _primary,
-                                  fontWeight: FontWeight.w400,
-                                ),
                               ),
                             ),
                           ),
