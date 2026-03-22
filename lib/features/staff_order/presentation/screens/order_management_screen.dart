@@ -181,13 +181,20 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
   }
 
   Widget _buildOrderCard(ReservationData reservation) {
+    final normalized = reservation.status.trim().toLowerCase();
+    final isClosed = normalized == 'cancelled' ||
+        normalized == 'canceled' ||
+        normalized == 'completed' ||
+        normalized == 'checkedout' ||
+        normalized == 'finished';
+
     return ModernOrderCard(
       tableName: reservation.tableName.replaceAll('Table', 'Bàn'),
       customerName: reservation.customerName,
       guestCount: reservation.guestCount,
       timeText: _formatTime(reservation.createdAt),
       status: reservation.status,
-      onOpen: reservation.orderId == null
+      onOpen: reservation.orderId == null || isClosed
           ? null
           : () {
               Navigator.pushNamed(
@@ -201,6 +208,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                   guestCount: reservation.guestCount,
                   checkInTime: reservation.createdAt,
                   customerName: reservation.customerName,
+                  reservationStatus: reservation.status,
                 ),
               );
             },

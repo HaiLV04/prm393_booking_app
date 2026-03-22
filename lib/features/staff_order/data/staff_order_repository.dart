@@ -107,6 +107,7 @@ class StaffOrderRepository {
       guestCount: created.guestCount,
       checkInTime: created.checkInTime,
       customerName: created.customerName,
+      reservationStatus: created.status,
     );
   }
 
@@ -130,6 +131,7 @@ class StaffOrderRepository {
             guestCount: reservation.guestCount,
             checkInTime: reservation.checkInTime,
             customerName: reservation.customerName,
+            reservationStatus: reservation.status,
           ),
         )
         .toList();
@@ -243,6 +245,7 @@ class StaffOrderContext {
     required this.guestCount,
     required this.checkInTime,
     required this.customerName,
+    this.reservationStatus,
   });
 
   final int tableId;
@@ -252,6 +255,7 @@ class StaffOrderContext {
   final int guestCount;
   final DateTime checkInTime;
   final String customerName;
+  final String? reservationStatus;
 }
 
 class CategoryData {
