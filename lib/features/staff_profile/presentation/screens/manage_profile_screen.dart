@@ -5,8 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:prm393_booking_app/core/network/app_config.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/reset_password.dart';
 import 'package:prm393_booking_app/features/staff_profile/presentation/screens/edit_profile_screen.dart';
+import 'package:prm393_booking_app/features/staff_order/presentation/staff_design_system.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:prm393_booking_app/features/auth/presentation/screens/login_screen.dart';
 
 class ManageProfileScreen extends StatefulWidget {
   const ManageProfileScreen({super.key});
@@ -16,9 +16,7 @@ class ManageProfileScreen extends StatefulWidget {
 }
 
 class _ManageProfileScreenState extends State<ManageProfileScreen> {
-  static const Color _primary = Color(0xFF13EC5B);
-  static const Color _lightBackground = Color(0xFFF6F8F6);
-  static const Color _darkBackground = Color(0xFF102216);
+  static const Color _primary = StaffDesignSystem.primary;
 
   int _selectedNavIndex = 3;
   bool _isLoading = true;
@@ -46,14 +44,23 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
         },
       );
 
-      final data = jsonDecode(response.body);
-      final isSuccess = data['success'] == true || data['isSuccess'] == true;
-      if (response.statusCode == 200 && isSuccess) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final isSuccess =
+          data['success'] == true ||
+          data['isSuccess'] == true ||
+          data['Success'] == true;
+      final payload = (data['data'] ?? data['Data']) as Map<String, dynamic>?;
+      if (response.statusCode == 200 && isSuccess && payload != null) {
         if (mounted) {
           setState(() {
-            _fullName = data['data']['fullName'] ?? 'N/A';
-            _email = data['data']['email'] ?? 'N/A';
-            _role = data['data']['role']?.toString().toUpperCase() ?? 'STAFF';
+            _fullName =
+                (payload['fullName'] ?? payload['FullName'] ?? 'N/A')
+                    .toString();
+            _email = (payload['email'] ?? payload['Email'] ?? 'N/A').toString();
+            _role =
+                (payload['role'] ?? payload['Role'] ?? 'STAFF')
+                    .toString()
+                    .toUpperCase();
             _isLoading = false;
           });
         }
@@ -69,10 +76,7 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
@@ -107,9 +111,9 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? _darkBackground : _lightBackground;
-    final cardColor = isDark ? const Color(0xFF1A2F20) : Colors.white;
-    final muted = isDark ? const Color(0xFF9DB9A6) : const Color(0xFF64748B);
+    final bgColor = context.backgroundColor;
+    final cardColor = context.cardColor;
+    final muted = context.textSecondary;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -123,7 +127,7 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                 Container(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Text(
-                    'Tai khoan',
+                    'Tài khoản',
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -242,8 +246,8 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                               onTap: _openChangePassword,
                               icon: Icons.key,
                               iconColor: _primary,
-                              title: 'Doi mat khau',
-                              subtitle: 'Bao mat tai khoan',
+                              title: 'Đổi mật khẩu',
+                              subtitle: 'Bảo mật tài khoản',
                             ),
                             const SizedBox(height: 10),
                             _menuCard(
@@ -251,8 +255,8 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                               cardColor: cardColor,
                               icon: Icons.notifications,
                               iconColor: _primary,
-                              title: 'Thong bao',
-                              subtitle: 'Cap nhat he thong',
+                              title: 'Thông báo',
+                              subtitle: 'Cập nhật hệ thống',
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -284,8 +288,8 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                               cardColor: cardColor.withValues(alpha: 0.6),
                               icon: Icons.settings,
                               iconColor: Colors.grey,
-                              title: 'Cai dat',
-                              subtitle: 'Chi danh cho quan tri vien',
+                              title: 'Cài đặt',
+                              subtitle: 'Chỉ dành cho quản trị viên',
                               enabled: false,
                               trailing: const Icon(Icons.lock, color: Colors.grey),
                             ),
@@ -303,7 +307,7 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                                       const Icon(Icons.logout, color: Colors.red),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Dang xuat',
+                                        'Đăng xuất',
                                         style: GoogleFonts.inter(
                                           color: Colors.red,
                                           fontWeight: FontWeight.w600,
@@ -321,73 +325,10 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
             ),
           ),
         ),
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: cardColor,
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1F2F24)
-                  : const Color(0xFFE2E8F0),
-            ),
-          ),
-        ),
-        child: SafeArea(
-          top: false,
-          child: BottomNavigationBar(
-            currentIndex: _selectedNavIndex,
-            onTap: _handleBottomNavTap,
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            selectedItemColor: _primary,
-            unselectedItemColor: muted,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard_outlined),
-                activeIcon: Icon(Icons.dashboard),
-                label: 'Bang dieu khien',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.table_chart_outlined),
-                activeIcon: Icon(Icons.table_chart),
-                label: 'Ban',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.receipt_long_outlined),
-                activeIcon: Icon(Icons.receipt_long),
-                label: 'Don hang',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                activeIcon: Icon(Icons.person),
-                label: 'Tai khoan',
-              ),
-            ],
-          ),
-        ),
-      ),
+      )
     );
   }
 
-  void _handleBottomNavTap(int index) {
-    setState(() => _selectedNavIndex = index);
-
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/staff/dashboard');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/staff/tables');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/staff/orders');
-        break;
-      case 3:
-        break;
-    }
-  }
 
   Widget _menuCard(
     BuildContext context, {
@@ -407,7 +348,9 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
     return Container(
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.borderColor),
+        boxShadow: StaffDesignSystem.shadowLight,
       ),
       child: ListTile(
         enabled: enabled,
