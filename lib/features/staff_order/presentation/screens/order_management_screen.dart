@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:prm393_booking_app/features/staff_order/data/staff_order_repository.dart';
 import 'package:prm393_booking_app/features/staff_order/presentation/staff_design_system.dart';
@@ -16,26 +14,11 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
   final StaffOrderRepository _repository = StaffOrderRepository();
   late Future<List<ReservationData>> _reservationsFuture;
   String _selectedStatus = 'all';
-  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _reservationsFuture = _repository.getReservations();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _reservationsFuture = _repository.getReservations();
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
   }
 
   @override

@@ -26,6 +26,91 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
 
   int? _activeCategoryId;
 
+  Future<void> _handleBack() async {
+    if (!mounted) {
+      return;
+    }
+
+    final popped = await Navigator.of(context).maybePop();
+    if (!popped && mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/staff/home', (route) => false);
+    }
+  }
+
+  void _showOrderSentToast() {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 18),
+        padding: EdgeInsets.zero,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        duration: const Duration(seconds: 4),
+        content: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1F2A23),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: StaffTheme.primary.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: StaffTheme.primary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.check_circle, color: StaffTheme.primary),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Đã xác nhận món và gửi bếp thành công.',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    messenger.hideCurrentSnackBar();
+                    Navigator.pushNamed(
+                      context,
+                      '/staff/order-detail',
+                      arguments: _context,
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFB8FFD6),
+                    textStyle: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  child: const Text('Xem đơn'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -190,21 +275,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Đã xác nhận món và gửi bếp thành công.'),
-          action: SnackBarAction(
-            label: 'Xem đơn',
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                '/staff/order-detail',
-                arguments: _context,
-              );
-            },
-          ),
-        ),
-      );
+      _showOrderSentToast();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -383,11 +454,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () {
-              if (mounted) {
-                Navigator.of(context).pop();
-              }
-            },
+            onPressed: _handleBack,
             icon: const Icon(Icons.arrow_back),
           ),
           Expanded(

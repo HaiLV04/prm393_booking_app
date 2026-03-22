@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:prm393_booking_app/features/staff_order/data/staff_order_repository.dart';
 import 'package:prm393_booking_app/features/staff_order/presentation/staff_design_system.dart';
@@ -18,7 +16,6 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
   StaffOrderContext? _context;
   String _paymentMethod = 'cash';
   bool _mealCompletedConfirmed = false;
-  Timer? _refreshTimer;
 
   static const List<_PaymentMethodOption> _paymentMethods = <_PaymentMethodOption>[
     _PaymentMethodOption(value: 'cash', label: 'Tiền mặt'),
@@ -27,28 +24,9 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _future = _load();
-      });
-    });
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _future = _load();
-  }
-
-  @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
   }
 
   Future<_OrderDetailVm> _load() async {
