@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:prm393_booking_app/core/constants/app_colors.dart';
+import 'package:prm393_booking_app/core/network/api_client.dart';
+import 'package:prm393_booking_app/features/admin/data/services/admin_statistics_service.dart';
 
-/// StatisticsScreen: Admin views business metrics and reports
-/// Business Logic:
-/// 1. Display revenue metrics (daily, weekly, monthly)
-/// 2. Show best-selling menu items
-/// 3. Display dining area occupancy rates
-/// 4. Show peak hours analysis
-/// 5. Generate reports for business decisions
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
 
@@ -16,127 +12,320 @@ class StatisticsScreen extends StatefulWidget {
 }
 
 class _StatisticsScreenState extends State<StatisticsScreen> {
-  String _selectedPeriod = 'today'; // today, week, month
-  bool _isLoading = false;
+  static const Color _darkBackground = Color(0xFF151D18);
 
-  static const Color _primary = Color(0xFF13EC5B);
-  static const Color _bgDark = Color(0xFF102216);
-  static const Color _surfaceDark = Color(0xFF1C2E21);
-  static const Color _textSecondary = Color(0xFF9DB9A6);
+  late final AdminStatisticsService _statisticsService;
 
-  // Mock statistics data
-  final Map<String, dynamic> _stats = {
-    'today': {
-      'revenue': 4500000,
-      'orders': 18,
-      'tables': 12,
-      'avgOrderValue': 250000,
-    },
-    'week': {
-      'revenue': 28500000,
-      'orders': 124,
-      'tables': 78,
-      'avgOrderValue': 229838,
-    },
-    'month': {
-      'revenue': 112000000,
-      'orders': 512,
-      'tables': 320,
-      'avgOrderValue': 218750,
-    },
-  };
+  String _selectedPeriod = 'today';
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  final List<Map<String, dynamic>> _topItems = [
-    {'name': 'Cơm mực', 'sold': 156, 'revenue': 23400000},
-    {'name': 'Canh cua', 'sold': 142, 'revenue': 17050000},
-    {'name': 'Nước ép cam', 'sold': 189, 'revenue': 8505000},
-    {'name': 'Kem tiramisu', 'sold': 98, 'revenue': 5880000},
-    {'name': 'Salad rau xanh', 'sold': 87, 'revenue': 7395000},
-  ];
+  Map<String, dynamic> _currentStats = {};
+  List<Map<String, dynamic>> _topItems = [];
 
-  final List<Map<String, dynamic>> _areaOccupancy = [
-    {'name': 'Main Indoor Hall', 'occupied': 32, 'total': 40, 'occupancy': 0.8},
-    {'name': 'Terrace Garden', 'occupied': 12, 'total': 15, 'occupancy': 0.8},
-    {'name': 'VIP Lounge', 'occupied': 6, 'total': 8, 'occupancy': 0.75},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _statisticsService = AdminStatisticsService(apiClient: ApiClient());
+    _loadStatistics();
+  }
 
-  final List<Map<String, dynamic>> _peakHours = [
-    {'hour': '11', 'orders': 2},
-    {'hour': '12', 'orders': 8},
-    {'hour': '13', 'orders': 6},
-    {'hour': '18', 'orders': 7},
-    {'hour': '19', 'orders': 9},
-    {'hour': '20', 'orders': 5},
-    {'hour': '21', 'orders': 3},
-  ];
+  Future<void> _loadStatistics({bool showLoading = true}) async {
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
+
+    try {
+      final response = await _statisticsService.getStatisticsOverview(
+        period: _selectedPeriod,
+        topLimit: 5,
+      );
+
+      final data = _asMap(response['data']);
+      final revenueRaw = _asMap(data['revenue']);
+      final topItemsRaw = _asList(data['topItems']);
+
+      final stats = _normalizeRevenueData(revenueRaw);
+      final items = topItemsRaw
+          .whereType<Map>()
+          .map((item) {
+            final map = item.cast<String, dynamic>();
+            final imageUrl = _normalizeNullableString(map['imageUrl']);
+            return <String, dynamic>{
+              'name': _normalizeString(
+                map['menuItemName'] ?? map['name'],
+                fallback: 'Món ăn',
+              ),
+              'category': _normalizeString(
+                map['categoryName'] ?? map['category'],
+                fallback: 'Chưa phân loại',
+              ),
+              'sold': (map['totalQuantity'] as num?)?.toInt() ??
+                  (map['sold'] as num?)?.toInt() ??
+                  0,
+              'imageUrl': imageUrl,
+            };
+          })
+          .toList();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _currentStats = stats;
+        _topItems = items;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _errorMessage = error.message;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Không thể tải dữ liệu thống kê. Vui lòng thử lại.';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? _bgDark : const Color(0xFFF6F8F6);
-    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final subtitleColor = isDark ? _textSecondary : const Color(0xFF64748B);
-    final surfaceColor = isDark ? _surfaceDark : Colors.white;
+    final backgroundColor = isDark ? _darkBackground : AppColors.backgroundLight;
+    final textColor = isDark ? Colors.white : AppColors.textMain;
+    final subtitleColor = isDark ? const Color(0xFF9DB9A6) : AppColors.textSub;
+    final borderColor = AppColors.primary.withOpacity(isDark ? 0.2 : 0.12);
 
-    final currentStats = _stats[_selectedPeriod] ?? _stats['today']!;
+    final stats = _currentStats.length == 0 ? _defaultStats() : _currentStats;
+    final chartValues = List<double>.from(
+      _asList(stats['chart'])
+          .map((value) => (value as num).toDouble()),
+    );
+    final labels = List<String>.from(_asList(stats['labels']).map((item) => item.toString()));
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            // Header
-            _buildHeader(textColor, isDark),
-
-            // Period Selector
-            _buildPeriodSelector(textColor),
-
-            // Main Content
+            _buildHeader(textColor, borderColor, backgroundColor),
+            _buildPeriodSelector(textColor, subtitleColor, isDark),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // KPI Cards
-                    _buildKPICards(currentStats, textColor, surfaceColor),
-                    const SizedBox(height: 24),
-
-                    // Top Selling Items
-                    _buildTopItemsSection(textColor, subtitleColor, surfaceColor),
-                    const SizedBox(height: 24),
-
-                    // Area Occupancy
-                    _buildAreaOccupancySection(textColor, subtitleColor, surfaceColor),
-                    const SizedBox(height: 24),
-
-                    // Peak Hours
-                    _buildPeakHoursSection(textColor, subtitleColor, surfaceColor),
-                    const SizedBox(height: 32),
-
-                    // Export Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          // TODO: Export report to PDF/Excel
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Xuất báo cáo sẽ được triển khai'),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.download),
-                        label: const Text('Xuất báo cáo'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _primary,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    )
+                  : _errorMessage != null
+                      ? _buildErrorState(textColor, subtitleColor)
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildRevenueSummary(
+                                stats,
+                                textColor,
+                                subtitleColor,
+                                isDark,
+                              ),
+                              _buildChartSection(
+                                values: chartValues,
+                                labels: labels,
+                                textColor: textColor,
+                                subtitleColor: subtitleColor,
+                                borderColor: borderColor,
+                                isDark: isDark,
+                              ),
+                              _buildTopItemsSection(textColor, subtitleColor),
+                            ],
+                          ),
                         ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(Color textColor, Color borderColor, Color backgroundColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: backgroundColor.withOpacity(0.95),
+        border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+      ),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: () => Navigator.pop(context),
+            borderRadius: BorderRadius.circular(20),
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: Icon(Icons.arrow_back, color: textColor),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Thống kê',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+          const Spacer(),
+          const SizedBox(width: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodSelector(Color textColor, Color subtitleColor, bool isDark) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          _buildPeriodButton('today', 'Hôm nay', textColor, subtitleColor, isDark),
+          const SizedBox(width: 8),
+          _buildPeriodButton('week', 'Tuần', textColor, subtitleColor, isDark),
+          const SizedBox(width: 8),
+          _buildPeriodButton('month', 'Tháng', textColor, subtitleColor, isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodButton(
+    String period,
+    String label,
+    Color textColor,
+    Color subtitleColor,
+    bool isDark,
+  ) {
+    final isSelected = _selectedPeriod == period;
+    return InkWell(
+      onTap: () {
+        if (_selectedPeriod == period) {
+          return;
+        }
+
+        setState(() {
+          _selectedPeriod = period;
+        });
+        _loadStatistics(showLoading: true);
+      },
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary
+              : AppColors.primary.withOpacity(isDark ? 0.2 : 0.1),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: isSelected ? Colors.white : subtitleColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRevenueSummary(
+    Map<String, dynamic> stats,
+    Color textColor,
+    Color subtitleColor,
+    bool isDark,
+  ) {
+    final growth = (stats['growth'] as num?)?.toDouble() ?? 0;
+    final isPositiveGrowth = growth >= 0;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(isDark ? 0.1 : 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.primary.withOpacity(isDark ? 0.2 : 0.12),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              stats['title'] as String,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: subtitleColor,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Text(
+                    '${_formatCurrency(stats['revenue'] as num? ?? 0)}đ',
+                    style: GoogleFonts.inter(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Icon(
+                      isPositiveGrowth ? Icons.trending_up : Icons.trending_down,
+                      size: 16,
+                      color: isPositiveGrowth
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFFEF4444),
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${isPositiveGrowth ? '+' : ''}${_formatPercent(growth)}%',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isPositiveGrowth
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFEF4444),
                       ),
                     ),
                   ],
                 ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              stats['subtitle'] as String,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+                color: subtitleColor,
               ),
             ),
           ],
@@ -145,436 +334,401 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     );
   }
 
-  Widget _buildHeader(Color textColor, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? _surfaceDark : Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFE2E8E4),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
+  Widget _buildChartSection({
+    required List<double> values,
+    required List<String> labels,
+    required Color textColor,
+    required Color subtitleColor,
+    required Color borderColor,
+    required bool isDark,
+  }) {
+    final maxValue = values.isEmpty ? 1.0 : values.reduce((a, b) => a > b ? a : b);
+    final safeMaxValue = maxValue <= 0 ? 1.0 : maxValue;
+    final highlightedIndex = values.length - 1;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(Icons.arrow_back, color: textColor),
-          ),
-          const SizedBox(width: 16),
           Text(
-            'Thống kê & Báo cáo',
-            style: GoogleFonts.outfit(
+            'Tổng quan doanh thu',
+            style: GoogleFonts.inter(
               fontSize: 18,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               color: textColor,
             ),
           ),
-          const Spacer(),
-          Icon(Icons.show_chart, color: _primary),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPeriodSelector(Color textColor) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          _buildPeriodButton('today', 'Hôm nay', textColor),
-          const SizedBox(width: 8),
-          _buildPeriodButton('week', 'Tuần này', textColor),
-          const SizedBox(width: 8),
-          _buildPeriodButton('month', 'Tháng này', textColor),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPeriodButton(String period, String label, Color textColor) {
-    final isSelected = _selectedPeriod == period;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedPeriod = period),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? _primary : Colors.transparent,
-          border: isSelected ? null : Border.all(color: _primary, width: 1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.outfit(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.black : textColor,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildKPICards(
-    Map<String, dynamic> stats,
-    Color textColor,
-    Color surfaceColor,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Chỉ số chính',
-          style: GoogleFonts.outfit(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: textColor,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 120,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildKPICard(
-                'Doanh thu',
-                '${(stats['revenue'] / 1000000).toStringAsFixed(1)}M',
-                Icons.trending_up,
-                Colors.green,
-                textColor,
-                surfaceColor,
+          const SizedBox(height: 12),
+          Container(
+            height: 256,
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.primary.withOpacity(isDark ? 0.2 : 0.16),
+                  AppColors.primary.withOpacity(isDark ? 0.08 : 0.05),
+                ],
               ),
-              const SizedBox(width: 12),
-              _buildKPICard(
-                'Đơn hàng',
-                stats['orders'].toString(),
-                Icons.shopping_cart,
-                Colors.blue,
-                textColor,
-                surfaceColor,
-              ),
-              const SizedBox(width: 12),
-              _buildKPICard(
-                'Bàn phục vụ',
-                stats['tables'].toString(),
-                Icons.event_available,
-                Colors.orange,
-                textColor,
-                surfaceColor,
-              ),
-              const SizedBox(width: 12),
-              _buildKPICard(
-                'Trung bình/Đơn',
-                '${(stats['avgOrderValue'] / 1000).toStringAsFixed(0)}k',
-                Icons.money,
-                _primary,
-                textColor,
-                surfaceColor,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildKPICard(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-    Color textColor,
-    Color surfaceColor,
-  ) {
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    color: textColor,
-                  ),
-                ),
-              ),
-              Icon(icon, color: color, size: 16),
-            ],
-          ),
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            child: Column(
+              children: [
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: List.generate(values.length, (index) {
+                      final value = values[index];
+                      final ratio = value / safeMaxValue;
+                      final highlighted = index == highlightedIndex;
 
-  Widget _buildTopItemsSection(Color textColor, Color subtitleColor, Color surfaceColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Món bán chạy nhất',
-          style: GoogleFonts.outfit(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: textColor,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: surfaceColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: List.generate(_topItems.length, (index) {
-              final item = _topItems[index];
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: _primary.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${index + 1}',
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.bold,
-                                color: _primary,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Text(
-                                item['name'],
-                                style: GoogleFonts.outfit(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: textColor,
-                                ),
+                              SizedBox(
+                                height: 18,
+                                child: highlighted
+                                    ? Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.75),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          _formatCompactMillion(value),
+                                          style: GoogleFonts.inter(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox.shrink(),
                               ),
-                              Text(
-                                '${item['sold']} bán',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 11,
-                                  color: subtitleColor,
+                              const SizedBox(height: 4),
+                              Container(
+                                width: double.infinity,
+                                height: 150 * ratio,
+                                decoration: BoxDecoration(
+                                  color: highlighted
+                                      ? AppColors.primary
+                                      : AppColors.primary.withOpacity(
+                                          isDark ? 0.58 : 0.4,
+                                        ),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(6),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        Text(
-                          '${(item['revenue'] / 1000000).toStringAsFixed(1)}M',
-                          style: GoogleFonts.outfit(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: _primary,
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    }),
                   ),
-                  if (index < _topItems.length - 1)
-                    Divider(height: 1, indent: 56, endIndent: 0),
-                ],
-              );
-            }),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAreaOccupancySection(
-    Color textColor,
-    Color subtitleColor,
-    Color surfaceColor,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Tỷ lệ sử dụng bàn theo khu vực',
-          style: GoogleFonts.outfit(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: textColor,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: surfaceColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: List.generate(_areaOccupancy.length, (index) {
-              final area = _areaOccupancy[index];
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              area['name'],
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: textColor,
-                              ),
-                            ),
-                            Text(
-                              '${(area['occupancy'] * 100).toStringAsFixed(0)}%',
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: _primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: LinearProgressIndicator(
-                            value: area['occupancy'],
-                            minHeight: 6,
-                            backgroundColor: Colors.grey.withOpacity(0.2),
-                            valueColor: AlwaysStoppedAnimation<Color>(_primary),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${area['occupied']}/${area['total']} bàn',
-                          style: GoogleFonts.outfit(
-                            fontSize: 11,
-                            color: subtitleColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (index < _areaOccupancy.length - 1)
-                    Divider(height: 1, indent: 12, endIndent: 12),
-                ],
-              );
-            }),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPeakHoursSection(
-    Color textColor,
-    Color subtitleColor,
-    Color surfaceColor,
-  ) {
-    final maxOrders = _peakHours.fold<int>(
-      0,
-      (max, item) => item['orders'] > max ? item['orders'] : max,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Giờ cao điểm',
-          style: GoogleFonts.outfit(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: textColor,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: surfaceColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: _peakHours.map((item) {
-              return Expanded(
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: 80,
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          width: 24,
-                          height: (item['orders'] / maxOrders) * 60,
-                          decoration: BoxDecoration(
-                            color: _primary.withOpacity(0.8),
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(4),
-                              topRight: Radius.circular(4),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${item['hour']}h',
-                      style: GoogleFonts.outfit(
-                        fontSize: 11,
-                        color: subtitleColor,
-                      ),
-                    ),
-                  ],
                 ),
-              );
-            }).toList(),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(labels.length, (index) {
+                    final highlighted = index == highlightedIndex;
+                    return Expanded(
+                      child: Text(
+                        labels[index],
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500,
+                          color: highlighted ? AppColors.primary : subtitleColor,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopItemsSection(Color textColor, Color subtitleColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Text(
+            'Top 5 bán chạy',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _topItems.length == 0
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 16),
+                  child: Text(
+                    'Chưa có dữ liệu món bán chạy trong khoảng thời gian này.',
+                    style: GoogleFonts.inter(fontSize: 13, color: subtitleColor),
+                  ),
+                )
+              : Column(
+                  children: List.generate(_topItems.length, (index) {
+                    final item = _topItems[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item['name'] as String,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  item['category'] as String,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                    color: subtitleColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${item['sold']}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: textColor,
+                                ),
+                              ),
+                              Text(
+                                'Đã bán',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  color: subtitleColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
         ),
       ],
     );
+  }
+
+  Widget _buildErrorState(Color textColor, Color subtitleColor) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline_rounded, color: textColor, size: 28),
+            const SizedBox(height: 12),
+            Text(
+              _errorMessage ?? 'Có lỗi xảy ra.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 13, color: subtitleColor),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _loadStatistics,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Thử lại'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Map<String, dynamic> _defaultStats() {
+    return {
+      'title': _defaultTitle(_selectedPeriod),
+      'revenue': 0.0,
+      'growth': 0.0,
+      'subtitle': _defaultSubtitle(_selectedPeriod),
+      'chart': List<double>.filled(_defaultLabels(_selectedPeriod).length, 0),
+      'labels': _defaultLabels(_selectedPeriod),
+    };
+  }
+
+  Map<String, dynamic> _normalizeRevenueData(Map<String, dynamic> raw) {
+    final chartValuesRaw = _asList(raw['chartValues']);
+    final fallbackChartValuesRaw = _asList(raw['chart']);
+    final labelsRaw = _asList(raw['chartLabels']);
+    final fallbackLabelsRaw = _asList(raw['labels']);
+
+    final sourceChartValues = chartValuesRaw.length > 0
+      ? chartValuesRaw
+      : fallbackChartValuesRaw;
+    final sourceLabels = labelsRaw.length > 0 ? labelsRaw : fallbackLabelsRaw;
+
+    final chartValues =
+      sourceChartValues.map((value) => (value as num?)?.toDouble() ?? 0).toList();
+    final labels = sourceLabels.map((label) => label.toString()).toList();
+
+    if (chartValues.length == 0 || labels.length == 0 || chartValues.length != labels.length) {
+      return _defaultStats()
+        ..['revenue'] = (raw['revenue'] as num?)?.toDouble() ?? 0
+        ..['growth'] = (raw['revenueChangePercent'] as num?)?.toDouble() ?? 0;
+    }
+
+    return {
+      'title': (raw['title'] as String?) ?? _defaultTitle(_selectedPeriod),
+      'revenue': (raw['revenue'] as num?)?.toDouble() ?? 0,
+      'growth': (raw['revenueChangePercent'] as num?)?.toDouble() ?? 0,
+      'subtitle': (raw['subtitle'] as String?) ?? _defaultSubtitle(_selectedPeriod),
+      'chart': chartValues,
+      'labels': labels,
+    };
+  }
+
+  List<String> _defaultLabels(String period) {
+    switch (period) {
+      case 'week':
+        return ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+      case 'month':
+        return ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'];
+      default:
+        return ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+    }
+  }
+
+  String _defaultTitle(String period) {
+    switch (period) {
+      case 'week':
+        return 'Doanh thu tuần này';
+      case 'month':
+        return 'Doanh thu tháng này';
+      default:
+        return 'Doanh thu hôm nay';
+    }
+  }
+
+  String _defaultSubtitle(String period) {
+    switch (period) {
+      case 'week':
+        return 'So với tuần trước';
+      case 'month':
+        return 'So với tháng trước';
+      default:
+        return 'So với cùng kỳ hôm qua';
+    }
+  }
+
+  String _formatCurrency(num value) {
+    final text = value.round().toString();
+    final buffer = StringBuffer();
+    var count = 0;
+    for (var index = text.length - 1; index >= 0; index--) {
+      buffer.write(text[index]);
+      count++;
+      if (count % 3 == 0 && index > 0) {
+        buffer.write(',');
+      }
+    }
+    return buffer.toString().split('').reversed.join();
+  }
+
+  String _formatPercent(double value) {
+    if (value == value.roundToDouble()) {
+      return value.toStringAsFixed(0);
+    }
+    return value.toStringAsFixed(2);
+  }
+
+  String _formatCompactMillion(num value) {
+    final million = value / 1000000;
+    if (million >= 10) {
+      return '${million.toStringAsFixed(1)}M';
+    }
+    return '${million.toStringAsFixed(2)}M';
+  }
+
+  String _normalizeString(dynamic value, {required String fallback}) {
+    final normalized = _normalizeNullableString(value);
+    return normalized ?? fallback;
+  }
+
+  String? _normalizeNullableString(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    final text = value.toString().trim();
+    if (text.length == 0 || text == 'undefined' || text == 'null') {
+      return null;
+    }
+
+    return text;
+  }
+
+  Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+
+    if (value is Map) {
+      return value.map(
+        (key, val) => MapEntry(key.toString(), val),
+      );
+    }
+
+    return <String, dynamic>{};
+  }
+
+  List<dynamic> _asList(dynamic value) {
+    if (value is List) {
+      return List<dynamic>.from(value);
+    }
+
+    if (value is Iterable) {
+      return value.toList();
+    }
+
+    return const <dynamic>[];
   }
 }

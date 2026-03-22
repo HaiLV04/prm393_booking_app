@@ -615,7 +615,7 @@ class _ManageStaffAccountScreenState extends State<ManageStaffAccountScreen> {
                             ),
                             trailing: Switch(
                               value: item.isActive,
-                              activeColor: _primary,
+                              activeThumbColor: _primary,
                               onChanged: (value) {
                                 _toggleStaffActive(item, value);
                               },
