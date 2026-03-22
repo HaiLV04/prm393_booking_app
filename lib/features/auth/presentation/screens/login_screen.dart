@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:prm393_booking_app/core/network/app_config.dart';
+import 'package:prm393_booking_app/core/network/app_config.dart';
 import 'package:prm393_booking_app/features/admin/presentation/screens/manage_staff_account_screen.dart';
 import 'package:prm393_booking_app/features/staff_profile/presentation/screens/manage_profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,20 +57,30 @@ class _LoginScreenState extends State<LoginScreen> {
         }),
       );
 
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final payload = (data['data'] ?? data['Data']) as Map<String, dynamic>?;
 
+      final isSuccess =
+          data['success'] == true ||
+          data['isSuccess'] == true ||
+          data['Success'] == true;
+      if (response.statusCode == 200 && isSuccess) {
       final isSuccess = data['success'] == true || data['isSuccess'] == true;
 
       if (response.statusCode == 200 && isSuccess) {
         // Optional: Save token to shared preferences
         final prefs = await SharedPreferences.getInstance();
-        if (data['data'] != null && data['data']['token'] != null) {
-          await prefs.setString('auth_token', data['data']['token']);
+        final token = (payload?['token'] ?? payload?['Token'])?.toString();
+        if (token != null && token.isNotEmpty) {
+          await prefs.setString('auth_token', token);
         }
 
         // Read role from different possible response shapes
-        final role = (data['data']?['role'] ??
-                data['data']?['user']?['role'] ??
+        final user = (payload?['user'] ?? payload?['User']) as Map<String, dynamic>?;
+        final role = (payload?['role'] ??
+                payload?['Role'] ??
+                user?['role'] ??
+                user?['Role'] ??
                 data['role'])
             ?.toString()
             .toLowerCase();
@@ -79,31 +90,33 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (mounted) {
           if (role == 'admin') {
+            Navigator.pushReplacementNamed(context, '/admin/dashboard');
             Navigator.pushReplacement(
               context, 
               MaterialPageRoute(builder: (context) => const ManageStaffAccountScreen()));
           } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ManageProfileScreen(),
-              ),
-            );
+            // Staff default landing page should be dashboard/home, not profile.
+            Navigator.pushReplacementNamed(context, '/staff/home');
           }
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Login failed')),
+            SnackBar(
+              content: Text(
+                (data['message'] ?? data['Message'] ?? 'Login failed')
+                    .toString(),
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Error connecting to server (Ensure backend is running)',
+              'Cannot connect to ${AppConfig.apiBaseUrl}. Check backend host/port and device network.',
             ),
           ),
         );

@@ -80,9 +80,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         }),
       );
 
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      final isSuccess = data['success'] == true || data['isSuccess'] == true;
+      final isSuccess =
+          data['success'] == true ||
+          data['isSuccess'] == true ||
+          data['Success'] == true;
       if (response.statusCode == 200 && isSuccess) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -93,14 +96,25 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Failed to change password')),
+            SnackBar(
+              content: Text(
+                (data['message'] ??
+                        data['Message'] ??
+                        'Failed to change password')
+                    .toString(),
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error connecting to server')),
+          SnackBar(
+            content: Text(
+              'Cannot connect to ${AppConfig.apiBaseUrl}. Check backend host/port and device network.',
+            ),
+          ),
         );
       }
     } finally {

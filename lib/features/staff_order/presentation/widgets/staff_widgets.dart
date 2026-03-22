@@ -190,7 +190,7 @@ class QuickActionCard extends StatelessWidget {
           color: cardColor,
           border: Border.all(color: borderColor),
           borderRadius: BorderRadius.circular(StaffDesignSystem.radiusLarge),
-          boxShadow: StaffDesignSystem.shadowLight,
+          boxShadow: StaffDesignSystem.shadowMedium,
         ),
         child: Material(
           color: Colors.transparent,
@@ -202,6 +202,18 @@ class QuickActionCard extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: bgColor.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: StaffDesignSystem.spacing8),
                   if (isLoading)
                     SizedBox(
                       width: 40,
@@ -439,58 +451,77 @@ class StaffAppHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            StaffDesignSystem.spacing16,
-            StaffDesignSystem.spacing8,
-            StaffDesignSystem.spacing16,
-            StaffDesignSystem.spacing16,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        StaffDesignSystem.spacing16,
+        StaffDesignSystem.spacing8,
+        StaffDesignSystem.spacing16,
+        StaffDesignSystem.spacing16,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(StaffDesignSystem.spacing16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF143451), Color(0xFF1C5D67)],
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: StaffDesignSystem.primary.withValues(alpha: 0.3),
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(Icons.person_outline, size: 24),
-              ),
-              const SizedBox(width: StaffDesignSystem.spacing12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      subtitle,
-                      style: StaffTypography.labelSmall(isDark),
-                    ),
-                    Text(
-                      title,
-                      style: StaffTypography.headlineSmall(isDark),
-                    ),
-                  ],
-                ),
-              ),
-              if (showRefresh)
-                IconButton(
-                  onPressed: onRefresh,
-                  icon: const Icon(Icons.refresh),
-                )
-              else if (actions != null)
-                Row(children: actions!),
-            ],
-          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: StaffDesignSystem.shadowLarge,
         ),
-      ],
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.18),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.35),
+                  width: 1.5,
+                ),
+              ),
+              child: const Icon(Icons.person_outline, size: 24, color: Colors.white),
+            ),
+            const SizedBox(width: StaffDesignSystem.spacing12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    subtitle.toUpperCase(),
+                    style: StaffTypography.labelSmall(isDark).copyWith(
+                      color: Colors.white.withValues(alpha: 0.86),
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    title,
+                    style: StaffTypography.headlineSmall(isDark).copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (showRefresh)
+              IconButton(
+                onPressed: onRefresh,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.14),
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.refresh),
+              )
+            else if (actions != null)
+              Row(children: actions!),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -610,5 +641,193 @@ class EmptyState extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Modern stat card with stronger visual hierarchy and soft depth.
+class ModernStatCard extends StatelessWidget {
+  const ModernStatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    this.unit,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final String? unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    return Container(
+      padding: const EdgeInsets.all(StaffDesignSystem.spacing16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.12),
+            context.cardColor,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+        boxShadow: StaffDesignSystem.shadowMedium,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 12),
+          Text(label, style: StaffTypography.bodySmall(isDark)),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: StaffTypography.displayMedium(isDark).copyWith(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  height: 1.0,
+                ),
+              ),
+              if (unit != null) ...[
+                const SizedBox(width: 4),
+                Text(unit!, style: StaffTypography.bodySmall(isDark)),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Modern order card with customer details and tinted status chip.
+class ModernOrderCard extends StatelessWidget {
+  const ModernOrderCard({
+    required this.tableName,
+    required this.customerName,
+    required this.guestCount,
+    required this.timeText,
+    required this.status,
+    this.onOpen,
+    super.key,
+  });
+
+  final String tableName;
+  final String customerName;
+  final int guestCount;
+  final String timeText;
+  final String status;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    final statusTheme = _statusTheme(status);
+
+    return Container(
+      padding: const EdgeInsets.all(StaffDesignSystem.spacing12),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.borderColor),
+        boxShadow: StaffDesignSystem.shadowLight,
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: StaffDesignSystem.primary.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.table_restaurant, color: StaffDesignSystem.primaryDark),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(tableName, style: StaffTypography.titleMedium(isDark)),
+                    const SizedBox(height: 2),
+                    Text(customerName, style: StaffTypography.bodySmall(isDark)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: statusTheme.$1,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  statusTheme.$3,
+                  style: StaffTypography.labelSmall(isDark).copyWith(color: statusTheme.$2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: context.borderColor),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(Icons.people_outline, size: 16, color: context.textSecondary),
+              const SizedBox(width: 4),
+              Text('$guestCount khách', style: StaffTypography.bodySmall(isDark)),
+              const SizedBox(width: 12),
+              Icon(Icons.schedule, size: 16, color: context.textSecondary),
+              const SizedBox(width: 4),
+              Text(timeText, style: StaffTypography.bodySmall(isDark)),
+              const Spacer(),
+              if (onOpen != null)
+                FilledButton.tonal(
+                  onPressed: onOpen,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: StaffDesignSystem.primary.withValues(alpha: 0.15),
+                    foregroundColor: StaffDesignSystem.primaryDark,
+                  ),
+                  child: const Text('Mở hóa đơn'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  (Color, Color, String) _statusTheme(String raw) {
+    switch (raw.toLowerCase()) {
+      case 'completed':
+        return (const Color(0xFFEAF9F1), const Color(0xFF0E9F6E), 'Hoàn thành');
+      case 'cancelled':
+        return (const Color(0xFFFDECEC), const Color(0xFFC0392B), 'Đã hủy');
+      case 'serving':
+        return (const Color(0xFFE8F3FF), const Color(0xFF1D4ED8), 'Đang phục vụ');
+      case 'pending':
+        return (const Color(0xFFFFF6E8), const Color(0xFFB56A00), 'Chờ xử lý');
+      default:
+        return (const Color(0xFFF2F4F7), const Color(0xFF667085), raw);
+    }
   }
 }

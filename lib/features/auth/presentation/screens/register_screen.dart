@@ -72,15 +72,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }),
       );
 
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      final isSuccess = data['success'] == true || data['isSuccess'] == true;
+      final isSuccess =
+          data['success'] == true ||
+          data['isSuccess'] == true ||
+          data['Success'] == true;
       if (response.statusCode == 200 && isSuccess) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                data['message'] ?? 'Registration successful. Please login.',
+                (data['message'] ??
+                        data['Message'] ??
+                        'Registration successful. Please login.')
+                    .toString(),
               ),
             ),
           );
@@ -89,16 +95,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Registration failed')),
+            SnackBar(
+              content: Text(
+                (data['message'] ?? data['Message'] ?? 'Registration failed')
+                    .toString(),
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Error connecting to server (Ensure backend is running)',
+              'Cannot connect to ${AppConfig.apiBaseUrl}. Check backend host/port and device network.',
             ),
           ),
         );
