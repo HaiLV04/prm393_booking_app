@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:prm393_booking_app/core/network/app_config.dart';
-import 'package:prm393_booking_app/features/admin/presentation/screens/manage_staff_account_screen.dart';
-import 'package:prm393_booking_app/features/staff_order/presentation/screens/staff_dashboard_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/register_screen.dart';
 
@@ -87,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
           if (role == 'admin') {
             Navigator.pushReplacementNamed(context, '/admin/dashboard');
           } else {
-            // Staff default landing page should be dashboard/home, not profile.
             Navigator.pushReplacementNamed(context, '/staff/home');
           }
         }

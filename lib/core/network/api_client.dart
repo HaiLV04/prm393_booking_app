@@ -55,6 +55,22 @@ class ApiClient {
     return _decodeResponse(response);
   }
 
+  Future<Map<String, dynamic>> put(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, dynamic>? query,
+    bool requiresAuth = true,
+  }) async {
+    final uri = _buildUri(path, query);
+    final headers = await _buildHeaders(requiresAuth: requiresAuth);
+    final response = await _httpClient.put(
+      uri,
+      headers: headers,
+      body: body == null ? null : jsonEncode(body),
+    );
+    return _decodeResponse(response);
+  }
+
   Uri _buildUri(String path, Map<String, dynamic>? query) {
     final normalizedPath = path.startsWith('/') ? path : '/$path';
     final base = Uri.parse(AppConfig.apiBaseUrl);

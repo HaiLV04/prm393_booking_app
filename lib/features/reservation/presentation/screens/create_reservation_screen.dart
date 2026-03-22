@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:prm393_booking_app/features/staff_order/data/staff_order_repository.dart';
 import '../../../../../shared/services/reservation_service.dart';
 
 class CreateReservationScreen extends StatefulWidget {
@@ -11,28 +12,21 @@ class CreateReservationScreen extends StatefulWidget {
 
 class _CreateReservationScreenState extends State<CreateReservationScreen> {
   static const Color _primary = Color(0xFF13EC5B);
-  static const Color _background = Color(0xFF102216);
-  static const Color _surface = Color(0xFF152E1E);
-  static const Color _surfaceSoft = Color(0xFF134620);
-  static const Color _border = Color(0x3329FF76);
-  static const Color _muted = Color(0xFF8EA497);
+  static const Color _background = Color(0xFFF6F8F6);
+  static const Color _surface = Colors.white;
+  static const Color _surfaceSoft = Color(0xFFF0F7F2);
+  static const Color _border = Color(0xFFE1E7E3);
+  static const Color _muted = Color(0xFF6B7C73);
+  static const Color _textPrimary = Color(0xFF17301F);
 
+  final StaffOrderRepository _tableRepository = StaffOrderRepository();
   final TextEditingController _noteController = TextEditingController();
   final TextEditingController _customerNameController = TextEditingController();
   final TextEditingController _customerPhoneController = TextEditingController();
 
-  final List<_TableOption> _tables = const [
-    _TableOption(id: 1, name: 'Table 01', areaName: 'Khu vực A', capacity: 4),
-    _TableOption(id: 2, name: 'Table 02', areaName: 'Khu vực A', capacity: 4),
-    _TableOption(id: 3, name: 'Table 03', areaName: 'Khu vực A', capacity: 6),
-    _TableOption(id: 4, name: 'Table 04', areaName: 'Khu vực B', capacity: 4),
-    _TableOption(id: 5, name: 'Table 05', areaName: 'Khu vực A', capacity: 2),
-    _TableOption(id: 6, name: 'Table 06', areaName: 'Khu vực B', capacity: 6),
-    _TableOption(id: 7, name: 'Table 07', areaName: 'Khu vực C', capacity: 4),
-    _TableOption(id: 8, name: 'Table 08', areaName: 'Khu vực C', capacity: 8),
-  ];
-
-  late _TableOption? _selectedTable;
+  late Future<List<TableData>> _tablesFuture;
+  List<TableData> _tables = const [];
+  TableData? _selectedTable;
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
   int _guestCount = 2;
@@ -41,7 +35,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedTable = _tables.firstWhere((table) => table.id == 5, orElse: () => _tables.first);
+    _tablesFuture = _loadTables();
     final now = DateTime.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
     _selectedTime = const TimeOfDay(hour: 19, minute: 0);
@@ -55,6 +49,39 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
     super.dispose();
   }
 
+  Future<List<TableData>> _loadTables() async {
+    final allTables = await _tableRepository.getTables();
+    final selectableTables = allTables
+        .where((table) => table.isActive && _isTableSelectable(table.status))
+        .toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+
+    final usableTables = selectableTables.isNotEmpty
+        ? selectableTables
+        : allTables.where((table) => table.isActive).toList();
+
+    if (mounted) {
+      setState(() {
+        _tables = usableTables;
+        _selectedTable ??= usableTables.isNotEmpty ? usableTables.first : null;
+        if (_selectedTable != null && _guestCount > _selectedTable!.capacity) {
+          _guestCount = _selectedTable!.capacity;
+        }
+      });
+    }
+
+    return usableTables;
+  }
+
+  bool _isTableSelectable(String status) {
+    final normalized = status.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return true;
+    }
+    const blocked = {'occupied', 'inactive', 'unavailable'};
+    return !blocked.contains(normalized);
+  }
+
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -64,11 +91,11 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
+            colorScheme: const ColorScheme.light(
               primary: _primary,
               surface: _surface,
             ),
-            dialogTheme: const DialogThemeData(backgroundColor: _background),
+            dialogTheme: const DialogThemeData(backgroundColor: _surface),
           ),
           child: child!,
         );
@@ -89,11 +116,11 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
+            colorScheme: const ColorScheme.light(
               primary: _primary,
               surface: _surface,
             ),
-            dialogTheme: const DialogThemeData(backgroundColor: _background),
+            dialogTheme: const DialogThemeData(backgroundColor: _surface),
           ),
           child: child!,
         );
@@ -123,9 +150,16 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   }
 
   Future<void> _openTablePicker() async {
-    final selected = await showModalBottomSheet<_TableOption>(
+    if (_tables.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chưa có dữ liệu bàn để chọn')),
+      );
+      return;
+    }
+
+    final selected = await showModalBottomSheet<TableData>(
       context: context,
-      backgroundColor: _background,
+      backgroundColor: _surface,
       showDragHandle: true,
       builder: (context) {
         return SafeArea(
@@ -173,7 +207,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                               Text(
                                 _displayTableName(table.name),
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: _textPrimary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -221,7 +255,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: _background,
+      backgroundColor: _surface,
       builder: (context) {
         return Padding(
           padding: EdgeInsets.only(
@@ -237,14 +271,14 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
               const Text(
                 'Thông tin khách hàng',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: _textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
-                'API hiện yêu cầu tên và số điện thoại khách hàng để tạo reservation.',
+                'API hiện yêu cầu tên và số điện thoại khách hàng để check-in.',
                 style: TextStyle(color: _muted, fontSize: 14),
               ),
               const SizedBox(height: 18),
@@ -286,7 +320,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                     ),
                   ),
                   child: const Text(
-                    'Tiếp tục tạo đặt chỗ',
+                    'Tiếp tục check-in',
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -301,12 +335,17 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   }
 
   String _buildNotePayload() {
-    final baseNote = _noteController.text.trim();
-    final scheduledAt = 'Ngày: ${_formatDate(_selectedDate)}, Giờ: ${_formatTime(_selectedTime)}';
-    if (baseNote.isEmpty) {
-      return scheduledAt;
-    }
-    return '$baseNote\n$scheduledAt';
+    return _noteController.text.trim();
+  }
+
+  DateTime _buildCheckInTime() {
+    return DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
   }
 
   Future<void> _submitReservation() async {
@@ -322,6 +361,16 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
       return;
     }
 
+    final checkInTime = _buildCheckInTime();
+    if (checkInTime.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thời gian check-in phải ở hiện tại hoặc tương lai'),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
@@ -332,6 +381,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
         customerName: _customerNameController.text.trim(),
         customerPhone: _customerPhoneController.text.trim(),
         guestCount: _guestCount,
+        checkInTime: checkInTime,
         note: _buildNotePayload(),
       );
 
@@ -340,7 +390,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tạo reservation thành công')),
+        const SnackBar(content: Text('Check-in thành công')),
       );
       Navigator.of(context).pop(true);
     } catch (error) {
@@ -348,7 +398,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể tạo reservation: $error')),
+        SnackBar(content: Text('Không thể check-in: $error')),
       );
     } finally {
       if (mounted) {
@@ -359,302 +409,351 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildLoadedContent(List<TableData> tables) {
     final selectedTable = _selectedTable;
 
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: _openTablePicker,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: _surfaceSoft,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _border),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFB8CCBE),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.local_florist,
+                            color: Color(0xFF3A6446),
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: selectedTable == null
+                              ? const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Chọn bàn',
+                                      style: TextStyle(
+                                              color: _textPrimary,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Nhấn để chọn bàn cho khách đang check-in',
+                                      style: TextStyle(
+                                        color: _muted,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _displayTableName(selectedTable.name),
+                                      style: const TextStyle(
+                                        color: _textPrimary,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${selectedTable.areaName} • ${selectedTable.capacity} chỗ',
+                                      style: const TextStyle(
+                                        color: _muted,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                        IconButton(
+                          onPressed: selectedTable == null
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _selectedTable = null;
+                                  });
+                                },
+                          icon: const Icon(Icons.close, color: _muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _surface,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: _border),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: _primary.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.group, color: _primary),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Text(
+                          'Số khách',
+                          style: TextStyle(
+                            color: _textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      _CountButton(
+                        icon: Icons.remove,
+                        onPressed: _guestCount > 1
+                            ? () {
+                                setState(() {
+                                  _guestCount -= 1;
+                                });
+                              }
+                            : null,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Text(
+                          '$_guestCount',
+                          style: const TextStyle(
+                            color: _textPrimary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      _CountButton(
+                        icon: Icons.add,
+                        onPressed: () {
+                          final capacity = _selectedTable?.capacity;
+                          if (capacity != null && _guestCount >= capacity) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Bàn này tối đa $capacity khách'),
+                              ),
+                            );
+                            return;
+                          }
+                          setState(() {
+                            _guestCount += 1;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _PickerField(
+                        label: 'Ngày',
+                        icon: Icons.calendar_today,
+                        value: _formatDate(_selectedDate),
+                        onTap: _pickDate,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _PickerField(
+                        label: 'Giờ',
+                        icon: Icons.schedule,
+                        value: _formatTime(_selectedTime),
+                        onTap: _pickTime,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Ghi chú',
+                  style: TextStyle(
+                    color: _textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _noteController,
+                  maxLines: 5,
+                  style: const TextStyle(color: _textPrimary, fontSize: 15),
+                  decoration: InputDecoration(
+                    hintText: 'Thêm yêu cầu đặc biệt...',
+                    hintStyle: const TextStyle(color: _muted),
+                    filled: true,
+                    fillColor: _surface,
+                    contentPadding: const EdgeInsets.all(18),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(color: _border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(color: _border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(color: _primary),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+          decoration: const BoxDecoration(
+            color: _background,
+            border: Border(top: BorderSide(color: _border)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isSubmitting ? null : _submitReservation,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primary,
+                  foregroundColor: const Color(0xFF08110B),
+                  disabledBackgroundColor: _primary.withValues(alpha: 0.45),
+                  minimumSize: const Size.fromHeight(58),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 0,
+                ),
+                icon: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF08110B)),
+                        ),
+                      )
+                    : const Icon(Icons.check_circle),
+                label: Text(
+                  _isSubmitting ? 'Đang xử lý...' : 'Xác nhận check-in',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _background,
       appBar: AppBar(
-        backgroundColor: _background,
+        backgroundColor: _surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _textPrimary),
         ),
         centerTitle: true,
         title: const Text(
-          'Tạo đặt chỗ',
+          'Check-in khách',
           style: TextStyle(
-            color: Colors.white,
+            color: _textPrimary,
             fontSize: 22,
             fontWeight: FontWeight.w700,
           ),
         ),
       ),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      body: FutureBuilder<List<TableData>>(
+        future: _tablesFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: _primary));
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    GestureDetector(
-                      onTap: _openTablePicker,
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: _surfaceSoft,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _border),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 58,
-                              height: 58,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFB8CCBE),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: const Icon(
-                                Icons.local_florist,
-                                color: Color(0xFF3A6446),
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: selectedTable == null
-                                  ? const Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Chọn bàn',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          'Nhấn để chọn bàn cho reservation',
-                                          style: TextStyle(
-                                            color: _muted,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _displayTableName(selectedTable.name),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          selectedTable.areaName,
-                                          style: const TextStyle(
-                                            color: _muted,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                            ),
-                            IconButton(
-                              onPressed: selectedTable == null
-                                  ? null
-                                  : () {
-                                      setState(() {
-                                        _selectedTable = null;
-                                      });
-                                    },
-                              icon: const Icon(Icons.close, color: _muted),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _surface,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: _border),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: _primary.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(Icons.group, color: _primary),
-                          ),
-                          const SizedBox(width: 14),
-                          const Expanded(
-                            child: Text(
-                              'Số khách',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          _CountButton(
-                            icon: Icons.remove,
-                            onPressed: _guestCount > 1
-                                ? () {
-                                    setState(() {
-                                      _guestCount -= 1;
-                                    });
-                                  }
-                                : null,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            child: Text(
-                              '$_guestCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          _CountButton(
-                            icon: Icons.add,
-                            onPressed: () {
-                              final capacity = _selectedTable?.capacity;
-                              if (capacity != null && _guestCount >= capacity) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Bàn này tối đa $capacity khách',
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-                              setState(() {
-                                _guestCount += 1;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _PickerField(
-                            label: 'Ngày',
-                            icon: Icons.calendar_today,
-                            value: _formatDate(_selectedDate),
-                            onTap: _pickDate,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _PickerField(
-                            label: 'Giờ',
-                            icon: Icons.schedule,
-                            value: _formatTime(_selectedTime),
-                            onTap: _pickTime,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
                     const Text(
-                      'Ghi chú',
+                      'Không thể tải danh sách bàn',
                       style: TextStyle(
-                        color: Color(0xFFD5DED8),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        color: _textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _noteController,
-                      maxLines: 5,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                      decoration: InputDecoration(
-                        hintText: 'Thêm yêu cầu đặc biệt...',
-                        hintStyle: const TextStyle(color: Color(0xFF6D8477)),
-                        filled: true,
-                        fillColor: _surface,
-                        contentPadding: const EdgeInsets.all(18),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          borderSide: const BorderSide(color: _border),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          borderSide: const BorderSide(color: _border),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          borderSide: const BorderSide(color: _primary),
-                        ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: _muted),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _tablesFuture = _loadTables();
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: _primary),
+                      child: const Text(
+                        'Thử lại',
+                        style: TextStyle(color: Color(0xFF08110B)),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-              decoration: const BoxDecoration(
-                color: _background,
-                border: Border(top: BorderSide(color: _border)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _isSubmitting ? null : _submitReservation,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primary,
-                      foregroundColor: const Color(0xFF08110B),
-                      disabledBackgroundColor: _primary.withValues(alpha: 0.45),
-                      minimumSize: const Size.fromHeight(58),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      elevation: 0,
-                    ),
-                    icon: _isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF08110B)),
-                            ),
-                          )
-                        : const Icon(Icons.check_circle),
-                    label: Text(
-                      _isSubmitting ? 'Đang tạo...' : 'Xác nhận đặt chỗ',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+            );
+          }
+
+          final tables = snapshot.data ?? const <TableData>[];
+          return _buildLoadedContent(tables);
+        },
       ),
     );
   }
@@ -682,7 +781,7 @@ class _PickerField extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFFD5DED8),
+            color: _CreateReservationScreenState._textPrimary,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -701,13 +800,13 @@ class _PickerField extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(icon, color: const Color(0xFF97A99E), size: 20),
+                Icon(icon, color: _CreateReservationScreenState._muted, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     value,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: _CreateReservationScreenState._textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
@@ -738,7 +837,7 @@ class _CountButton extends StatelessWidget {
         height: 32,
         decoration: BoxDecoration(
           color: onPressed == null
-              ? const Color(0xFF24532F)
+              ? const Color(0xFFE8EFEB)
               : _CreateReservationScreenState._primary.withValues(alpha: 0.16),
           shape: BoxShape.circle,
         ),
@@ -746,7 +845,7 @@ class _CountButton extends StatelessWidget {
           icon,
           size: 18,
           color: onPressed == null
-              ? const Color(0xFF5F7768)
+              ? const Color(0xFFA2B1A8)
               : _CreateReservationScreenState._primary,
         ),
       ),
@@ -772,13 +871,17 @@ class _CustomerField extends StatelessWidget {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: _CreateReservationScreenState._textPrimary),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: _CreateReservationScreenState._muted),
         prefixIcon: Icon(icon, color: _CreateReservationScreenState._muted),
         filled: true,
         fillColor: _CreateReservationScreenState._surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: _CreateReservationScreenState._border),
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: _CreateReservationScreenState._border),
@@ -790,18 +893,4 @@ class _CustomerField extends StatelessWidget {
       ),
     );
   }
-}
-
-class _TableOption {
-  const _TableOption({
-    required this.id,
-    required this.name,
-    required this.areaName,
-    required this.capacity,
-  });
-
-  final int id;
-  final String name;
-  final String areaName;
-  final int capacity;
 }

@@ -1,64 +1,56 @@
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:prm393_booking_app/core/network/api_client.dart';
 import '../models/reservation.dart';
 
 class ReservationService {
-  // ✅ Tự động chọn URL phù hợp tùy theo platform
-  static String get baseUrl {
-    if (kIsWeb) {
-      return "http://localhost:5200/api"; // Web
-    } else {
-      return "http://10.0.2.2:5200/api"; // Android emulator
-      // Nếu chạy trên thiết bị thật, thay bằng: return "http://192.168.x.x:5200/api";
-    }
-  }
+  static final ApiClient _apiClient = ApiClient();
 
   /// GET: /api/reservations
   static Future<List<Reservation>> getReservations() async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/reservations"));
+      final jsonResponse = await _apiClient.get(
+        '/api/reservations',
+        query: {'page': 1, 'pageSize': 100},
+      );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-        
-        // ✅ Parse response: {success, data: [...] hoặc {items: [...]}}
-        if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
-          final data = jsonResponse['data'];
-          
-          // Nếu data là array trực tiếp
-          if (data is List) {
-            return data.map((e) => Reservation.fromJson(e)).toList();
-          }
-          // Nếu data là object với items property (paged result)
-          else if (data is Map && data['items'] != null) {
-            final List items = data['items'];
-            return items.map((e) => Reservation.fromJson(e)).toList();
-          }
-          
-          throw Exception("Format lỗi: data không phải array");
-        } else {
-          throw Exception("API lỗi: ${jsonResponse['message']}");
+      if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+        final data = jsonResponse['data'];
+
+        if (data is List) {
+          return data.map((e) => Reservation.fromJson(e)).toList();
         }
-      } else {
-        throw Exception("API lỗi: ${response.statusCode}");
+        if (data is Map && data['items'] != null) {
+          final List items = data['items'];
+          return items.map((e) => Reservation.fromJson(e)).toList();
+        }
+
+        throw Exception('Format lỗi: data không phải array');
       }
+
+      throw Exception('API lỗi: ${jsonResponse['message']}');
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        throw Exception('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
+      }
+      throw Exception('API lỗi: ${e.message}');
     } catch (e) {
-      throw Exception("Lỗi kết nối: $e");
+      throw Exception('Lỗi kết nối: $e');
     }
   }
 
   /// GET: /api/reservations/{id}
   static Future<Reservation> getReservationById(int id) async {
-    final response = await http.get(
-      Uri.parse("$baseUrl/reservations/$id"),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return Reservation.fromJson(data);
-    } else {
-      throw Exception("Không lấy được chi tiết");
+    try {
+      final json = await _apiClient.get('/api/reservations/$id');
+      final data = json['data'];
+      if (data is Map<String, dynamic>) {
+        return Reservation.fromJson(data);
+      }
+      throw Exception('Không lấy được chi tiết');
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        throw Exception('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
+      }
+      throw Exception('API lỗi: ${e.message}');
     }
   }
 
@@ -68,35 +60,68 @@ class ReservationService {
     required String customerName,
     required String customerPhone,
     required int guestCount,
+    required DateTime checkInTime,
     String? note,
   }) async {
-    final response = await http.post(
-      Uri.parse("$baseUrl/reservations/check-in"),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({
-        "tableId": tableId,
-        "customerName": customerName,
-        "customerPhone": customerPhone,
-        "guestCount": guestCount,
-        "note": note,
-      }),
-    );
+    try {
+      await _apiClient.post(
+        '/api/reservations/check-in',
+        body: {
+          'tableId': tableId,
+          'customerName': customerName,
+          'customerPhone': customerPhone,
+          'guestCount': guestCount,
+          'checkInTime': checkInTime.toIso8601String(),
+          'note': note,
+        },
+      );
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        throw Exception('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
+      }
+      throw Exception('API lỗi: ${e.message}');
+    }
+  }
 
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception("Tạo reservation thất bại: ${response.body}");
+  /// PUT: /api/reservations/{id}
+  static Future<void> updateReservation({
+    required int id,
+    required int tableId,
+    required String customerName,
+    required String customerPhone,
+    required int guestCount,
+    String? status,
+    String? note,
+  }) async {
+    try {
+      await _apiClient.put(
+        '/api/reservations/$id',
+        body: {
+          'tableId': tableId,
+          'customerName': customerName,
+          'customerPhone': customerPhone,
+          'guestCount': guestCount,
+          'status': status,
+          'note': note,
+        },
+      );
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        throw Exception('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
+      }
+      throw Exception('API lỗi: ${e.message}');
     }
   }
 
   /// PATCH: /api/reservations/{id}/cancel
   static Future<void> cancelReservation(int id) async {
-    final response = await http.patch(
-      Uri.parse("$baseUrl/reservations/$id/cancel"),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception("Hủy thất bại");
+    try {
+      await _apiClient.patch('/api/reservations/$id/cancel');
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        throw Exception('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
+      }
+      throw Exception('API lỗi: ${e.message}');
     }
   }
 }
