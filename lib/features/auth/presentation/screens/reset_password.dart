@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:prm393_booking_app/core/network/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -66,7 +67,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token') ?? '';
 
-      final url = Uri.parse('http://localhost:5200/api/auth/change-password');
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/api/auth/change-password');
       final response = await http.post(
         url,
         headers: {
@@ -79,9 +80,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         }),
       );
 
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      if (response.statusCode == 200 && data['isSuccess'] == true) {
+      final isSuccess =
+          data['success'] == true ||
+          data['isSuccess'] == true ||
+          data['Success'] == true;
+      if (response.statusCode == 200 && isSuccess) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Password changed successfully')),
@@ -91,14 +96,25 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Failed to change password')),
+            SnackBar(
+              content: Text(
+                (data['message'] ??
+                        data['Message'] ??
+                        'Failed to change password')
+                    .toString(),
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error connecting to server')),
+          SnackBar(
+            content: Text(
+              'Cannot connect to ${AppConfig.apiBaseUrl}. Check backend host/port and device network.',
+            ),
+          ),
         );
       }
     } finally {
