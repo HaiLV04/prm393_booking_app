@@ -56,85 +56,6 @@ class StaffOrderRepository {
     return items.map(ReservationData.fromJson).toList();
   }
 
-  Future<void> updateTableStatus({
-    required int tableId,
-    required String status,
-  }) async {
-    await _apiClient.patch(
-      '/api/tables/$tableId/status',
-      body: {'status': status},
-    );
-  }
-
-  Future<void> cancelReservation(int reservationId) async {
-    await _apiClient.patch('/api/reservations/$reservationId/cancel');
-  }
-
-  Future<StaffOrderContext> checkInAndCreateOrder({
-    required int tableId,
-    required String tableName,
-    required int guestCount,
-    required String customerName,
-    required String customerPhone,
-    String? note,
-  }) async {
-    final json = await _apiClient.post(
-      '/api/reservations/check-in',
-      body: {
-        'tableId': tableId,
-        'customerName': customerName,
-        'customerPhone': customerPhone,
-        'guestCount': guestCount,
-        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
-      },
-    );
-
-    final payload = (json['data'] ?? json['Data']) as Map<String, dynamic>?;
-    if (payload == null) {
-      throw Exception('Không nhận được dữ liệu check-in từ máy chủ.');
-    }
-
-    final created = ReservationData.fromJson(payload);
-    if (created.orderId == null) {
-      throw Exception('Đặt chỗ đã tạo nhưng chưa có order.');
-    }
-
-    return StaffOrderContext(
-      tableId: created.tableId,
-      tableName: created.tableName.isEmpty ? tableName : created.tableName,
-      reservationId: created.id,
-      orderId: created.orderId!,
-      guestCount: created.guestCount,
-      checkInTime: created.checkInTime,
-      customerName: created.customerName,
-    );
-  }
-
-  Future<List<StaffOrderContext>> getServingContexts() async {
-    final reservations = await getReservations();
-
-    final eligible = reservations
-        .where((reservation) =>
-            reservation.orderId != null && _isServingStatus(reservation.status))
-        .toList()
-      ..sort((a, b) => b.checkInTime.compareTo(a.checkInTime));
-
-    return eligible
-        .where((reservation) => reservation.orderId != null)
-        .map(
-          (reservation) => StaffOrderContext(
-            tableId: reservation.tableId,
-            tableName: reservation.tableName,
-            reservationId: reservation.id,
-            orderId: reservation.orderId!,
-            guestCount: reservation.guestCount,
-            checkInTime: reservation.checkInTime,
-            customerName: reservation.customerName,
-          ),
-        )
-        .toList();
-  }
-
   Future<OrderData> getOrder(int orderId) async {
     final json = await _apiClient.get('/api/orders/$orderId');
     final data = json['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
@@ -183,12 +104,29 @@ class StaffOrderRepository {
   }
 
   Future<StaffOrderContext?> getActiveContext() async {
-    final contexts = await getServingContexts();
-    if (contexts.isEmpty) {
+    final reservations = await getReservations();
+
+    final eligible = reservations
+        .where((reservation) =>
+            reservation.orderId != null &&
+            _isServingStatus(reservation.status))
+        .toList()
+      ..sort((a, b) => b.checkInTime.compareTo(a.checkInTime));
+
+    final selected = eligible.isNotEmpty ? eligible.first : null;
+    if (selected == null || selected.orderId == null) {
       return null;
     }
 
-    return contexts.first;
+    return StaffOrderContext(
+      tableId: selected.tableId,
+      tableName: selected.tableName,
+      reservationId: selected.id,
+      orderId: selected.orderId!,
+      guestCount: selected.guestCount,
+      checkInTime: selected.checkInTime,
+      customerName: selected.customerName,
+    );
   }
 
   bool _isServingStatus(String status) {
@@ -404,10 +342,6 @@ class OrderData {
     required this.totalAmount,
     required this.status,
     required this.note,
-    required this.invoiceId,
-    required this.invoicePaymentMethod,
-    required this.invoiceFinalTotal,
-    required this.invoicePaidAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -417,10 +351,6 @@ class OrderData {
   final double totalAmount;
   final String status;
   final String note;
-  final int? invoiceId;
-  final String? invoicePaymentMethod;
-  final double? invoiceFinalTotal;
-  final DateTime? invoicePaidAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -431,10 +361,6 @@ class OrderData {
       totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0,
       status: (json['status'] ?? '').toString(),
       note: (json['note'] ?? '').toString(),
-      invoiceId: json['invoiceId'] as int?,
-      invoicePaymentMethod: (json['invoicePaymentMethod'] as String?)?.trim(),
-      invoiceFinalTotal: (json['invoiceFinalTotal'] as num?)?.toDouble(),
-      invoicePaidAt: DateTime.tryParse((json['invoicePaidAt'] ?? '').toString()),
       createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()) ?? DateTime.now(),
       updatedAt: DateTime.tryParse((json['updatedAt'] ?? '').toString()) ?? DateTime.now(),
     );

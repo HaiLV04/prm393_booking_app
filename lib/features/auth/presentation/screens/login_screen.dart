@@ -2,9 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
-import 'package:prm393_booking_app/core/network/app_config.dart';
-import 'package:prm393_booking_app/core/network/app_config.dart';
-import 'package:prm393_booking_app/features/admin/presentation/screens/manage_staff_account_screen.dart';
 import 'package:prm393_booking_app/features/staff_profile/presentation/screens/manage_profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/register_screen.dart';
@@ -47,7 +44,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final url = Uri.parse('${AppConfig.apiBaseUrl}/api/auth/login');
+      // 10.0.2.2 is used for Android emulator to connect to localhost on host machine
+      // If you run on iOS Simulator or Web, you should use localhost instead of 10.0.2.2
+      final url = Uri.parse('http://localhost:5200/api/auth/login');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -57,30 +56,18 @@ class _LoginScreenState extends State<LoginScreen> {
         }),
       );
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final payload = (data['data'] ?? data['Data']) as Map<String, dynamic>?;
+      final data = jsonDecode(response.body);
 
-      final isSuccess =
-          data['success'] == true ||
-          data['isSuccess'] == true ||
-          data['Success'] == true;
-      if (response.statusCode == 200 && isSuccess) {
-      final isSuccess = data['success'] == true || data['isSuccess'] == true;
-
-      if (response.statusCode == 200 && isSuccess) {
+      if (response.statusCode == 200 && data['isSuccess'] == true) {
         // Optional: Save token to shared preferences
         final prefs = await SharedPreferences.getInstance();
-        final token = (payload?['token'] ?? payload?['Token'])?.toString();
-        if (token != null && token.isNotEmpty) {
-          await prefs.setString('auth_token', token);
+        if (data['data'] != null && data['data']['token'] != null) {
+          await prefs.setString('auth_token', data['data']['token']);
         }
 
         // Read role from different possible response shapes
-        final user = (payload?['user'] ?? payload?['User']) as Map<String, dynamic>?;
-        final role = (payload?['role'] ??
-                payload?['Role'] ??
-                user?['role'] ??
-                user?['Role'] ??
+        final role = (data['data']?['role'] ??
+                data['data']?['user']?['role'] ??
                 data['role'])
             ?.toString()
             .toLowerCase();
@@ -90,33 +77,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (mounted) {
           if (role == 'admin') {
-            Navigator.pushReplacementNamed(context, '/admin/dashboard');
-            Navigator.pushReplacement(
-              context, 
-              MaterialPageRoute(builder: (context) => const ManageStaffAccountScreen()));
+            Navigator.pushReplacementNamed(context, '/admin');
           } else {
-            // Staff default landing page should be dashboard/home, not profile.
-            Navigator.pushReplacementNamed(context, '/staff/home');
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ManageProfileScreen(),
+              ),
+            );
           }
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                (data['message'] ?? data['Message'] ?? 'Login failed')
-                    .toString(),
-              ),
-            ),
+            SnackBar(content: Text(data['message'] ?? 'Login failed')),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text(
-              'Cannot connect to ${AppConfig.apiBaseUrl}. Check backend host/port and device network.',
+              'Error connecting to server (Ensure backend is running)',
             ),
           ),
         );

@@ -4,66 +4,66 @@ import 'package:google_fonts/google_fonts.dart';
 /// Typography system - moved to top level
 class StaffTypography {
   // Display
-  static TextStyle displayMedium(bool isDark) => GoogleFonts.sora(
+  static TextStyle displayMedium(bool isDark) => GoogleFonts.inter(
     fontSize: 28,
-    fontWeight: FontWeight.w800,
-    height: 1.2,
+    fontWeight: FontWeight.w700,
+    height: 1.5,
     color: isDark ? StaffDesignSystem.textPrimaryDark : StaffDesignSystem.textPrimary,
   );
 
   // Headline
-  static TextStyle headlineMedium(bool isDark) => GoogleFonts.sora(
+  static TextStyle headlineMedium(bool isDark) => GoogleFonts.inter(
     fontSize: 24,
     fontWeight: FontWeight.w700,
-    height: 1.2,
+    height: 1.4,
     color: isDark ? StaffDesignSystem.textPrimaryDark : StaffDesignSystem.textPrimary,
   );
 
-  static TextStyle headlineSmall(bool isDark) => GoogleFonts.sora(
+  static TextStyle headlineSmall(bool isDark) => GoogleFonts.inter(
     fontSize: 20,
     fontWeight: FontWeight.w700,
-    height: 1.2,
+    height: 1.4,
     color: isDark ? StaffDesignSystem.textPrimaryDark : StaffDesignSystem.textPrimary,
   );
 
   // Title
-  static TextStyle titleLarge(bool isDark) => GoogleFonts.sora(
+  static TextStyle titleLarge(bool isDark) => GoogleFonts.inter(
     fontSize: 18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     height: 1.3,
     color: isDark ? StaffDesignSystem.textPrimaryDark : StaffDesignSystem.textPrimary,
   );
 
-  static TextStyle titleMedium(bool isDark) => GoogleFonts.sora(
+  static TextStyle titleMedium(bool isDark) => GoogleFonts.inter(
     fontSize: 16,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     height: 1.3,
     color: isDark ? StaffDesignSystem.textPrimaryDark : StaffDesignSystem.textPrimary,
   );
 
-  static TextStyle titleSmall(bool isDark) => GoogleFonts.sora(
+  static TextStyle titleSmall(bool isDark) => GoogleFonts.inter(
     fontSize: 14,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     height: 1.2,
     color: isDark ? StaffDesignSystem.textPrimaryDark : StaffDesignSystem.textPrimary,
   );
 
   // Body
-  static TextStyle bodyLarge(bool isDark) => GoogleFonts.sora(
+  static TextStyle bodyLarge(bool isDark) => GoogleFonts.inter(
     fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.5,
     color: isDark ? StaffDesignSystem.textSecondaryDark : StaffDesignSystem.textSecondary,
   );
 
-  static TextStyle bodyMedium(bool isDark) => GoogleFonts.sora(
+  static TextStyle bodyMedium(bool isDark) => GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.5,
     color: isDark ? StaffDesignSystem.textSecondaryDark : StaffDesignSystem.textSecondary,
   );
 
-  static TextStyle bodySmall(bool isDark) => GoogleFonts.sora(
+  static TextStyle bodySmall(bool isDark) => GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.4,
@@ -71,7 +71,7 @@ class StaffTypography {
   );
 
   // Label
-  static TextStyle labelLarge(bool isDark) => GoogleFonts.sora(
+  static TextStyle labelLarge(bool isDark) => GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w700,
     height: 1.3,
@@ -79,7 +79,7 @@ class StaffTypography {
     color: isDark ? StaffDesignSystem.textPrimaryDark : StaffDesignSystem.textPrimary,
   );
 
-  static TextStyle labelMedium(bool isDark) => GoogleFonts.sora(
+  static TextStyle labelMedium(bool isDark) => GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.w700,
     height: 1.3,
@@ -87,7 +87,7 @@ class StaffTypography {
     color: isDark ? StaffDesignSystem.textSecondaryDark : StaffDesignSystem.textSecondary,
   );
 
-  static TextStyle labelSmall(bool isDark) => GoogleFonts.sora(
+  static TextStyle labelSmall(bool isDark) => GoogleFonts.inter(
     fontSize: 11,
     fontWeight: FontWeight.w700,
     height: 1.2,
@@ -99,18 +99,18 @@ class StaffTypography {
 /// Staff App Design System with Material Design 3 principles
 class StaffDesignSystem {
   // Primary colors
-  static const Color primary = Color(0xFF0FAF87);
-  static const Color primaryDark = Color(0xFF0A7F64);
-  static const Color primaryLight = Color(0xFF58D9B8);
+  static const Color primary = Color(0xFF13EC5B);
+  static const Color primaryDark = Color(0xFF0FAA47);
+  static const Color primaryLight = Color(0xFF4AFF7F);
 
   // Semantic colors
-  static const Color success = Color(0xFF0FAF87);
+  static const Color success = Color(0xFF13EC5B);
   static const Color warning = Color(0xFFFFA500);
-  static const Color error = Color(0xFFE85D5D);
-  static const Color info = Color(0xFF2F7EF7);
+  static const Color error = Color(0xFFEF4444);
+  static const Color info = Color(0xFF3B82F6);
 
   // Background colors
-  static const Color bgLight = Color(0xFFEEF3F8);
+  static const Color bgLight = Color(0xFFF6F8F6);
   static const Color bgDark = Color(0xFF0F1613);
   static const Color cardLight = Colors.white;
   static const Color cardDark = Color(0xFF1A2F20);
@@ -121,13 +121,13 @@ class StaffDesignSystem {
   static const Color overlayDark = Color(0xFF0F1613);
 
   // Border & divider
-  static const Color borderLight = Color(0xFFD9E3EF);
+  static const Color borderLight = Color(0xFFE2E8F0);
   static const Color borderDark = Color(0xFF334155);
 
   // Text colors
-  static const Color textPrimary = Color(0xFF122230);
-  static const Color textSecondary = Color(0xFF4D5F72);
-  static const Color textLight = Color(0xFF708397);
+  static const Color textPrimary = Color(0xFF1F2937);
+  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textLight = Color(0xFF9CA3AF);
 
   static const Color textPrimaryDark = Colors.white;
   static const Color textSecondaryDark = Color(0xFFD1D5DB);
@@ -136,37 +136,37 @@ class StaffDesignSystem {
   // Status colors
   static const Color statusPending = Color(0xFFFCD34D);
   static const Color statusConfirmed = Color(0xFF60A5FA);
-  static const Color statusServing = Color(0xFF0FAF87);
+  static const Color statusServing = Color(0xFF13EC5B);
   static const Color statusCompleted = Color(0xFF10B981);
   static const Color statusCancelled = Color(0xFFF87171);
 
   static const Color statusOccupied = Color(0xFFEF4444);
-  static const Color statusAvailable = Color(0xFF0FAF87);
+  static const Color statusAvailable = Color(0xFF13EC5B);
   static const Color statusReserved = Color(0xFF3B82F6);
   static const Color statusUnavailable = Color(0xFF9CA3AF);
 
   // Shadows
   static const List<BoxShadow> shadowLight = [
     BoxShadow(
-      color: Color(0x140E2942),
-      blurRadius: 18,
-      offset: Offset(0, 8),
+      color: Color(0x0F000000),
+      blurRadius: 4,
+      offset: Offset(0, 1),
     ),
   ];
 
   static const List<BoxShadow> shadowMedium = [
     BoxShadow(
-      color: Color(0x1B0E2942),
-      blurRadius: 22,
-      offset: Offset(0, 10),
+      color: Color(0x1F000000),
+      blurRadius: 8,
+      offset: Offset(0, 2),
     ),
   ];
 
   static const List<BoxShadow> shadowLarge = [
     BoxShadow(
-      color: Color(0x220E2942),
-      blurRadius: 28,
-      offset: Offset(0, 12),
+      color: Color(0x2F000000),
+      blurRadius: 12,
+      offset: Offset(0, 4),
     ),
   ];
 

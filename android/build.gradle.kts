@@ -12,9 +12,7 @@ val newBuildDir: Directory =
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
-    // Only relocate local modules in this repo; keep external plugins in their
-    // own cache roots to avoid cross-drive path issues on Windows.
-    if (project.projectDir.toPath().startsWith(rootDir.toPath())) {
+    if (!project.name.contains("path_provider")) {
         val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
         project.layout.buildDirectory.value(newSubprojectBuildDir)
     }
