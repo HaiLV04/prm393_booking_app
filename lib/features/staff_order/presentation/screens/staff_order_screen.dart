@@ -26,15 +26,13 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
 
   int? _activeCategoryId;
 
-  Future<void> _handleBack() async {
+  void _handleBack() {
     if (!mounted) {
       return;
     }
 
-    final popped = await Navigator.of(context).maybePop();
-    if (!popped && mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, '/staff/home', (route) => false);
-    }
+    FocusScope.of(context).unfocus();
+    Navigator.pushNamedAndRemoveUntil(context, '/staff/home', (route) => false);
   }
 
   void _showOrderSentToast() {
@@ -126,6 +124,10 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
           ? routeContext
           : await _repository.getActiveContext();
 
+      if (!mounted) {
+        return;
+      }
+
       if (_context == null) {
         setState(() {
           _error = 'Không tìm thấy order đang phục vụ.';
@@ -148,6 +150,10 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
         _priceByMenuItemId[item.id] = item.price;
       }
 
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _categories = categories;
         _activeCategoryId = null;
@@ -162,6 +168,9 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -180,12 +189,20 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
       for (final item in menuItems) {
         _priceByMenuItemId[item.id] = item.price;
       }
+
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _menuItems = menuItems;
         _error = null;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _error = e.toString();
         _isLoading = false;
