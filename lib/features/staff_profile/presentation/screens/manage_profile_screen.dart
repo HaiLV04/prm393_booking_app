@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:prm393_booking_app/core/network/app_config.dart';
+import 'package:prm393_booking_app/features/staff_order/presentation/staff_design_system.dart';
+import 'package:prm393_booking_app/core/network/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:prm393_booking_app/features/auth/presentation/screens/login_screen.dart';
 
 class ManageProfileScreen extends StatefulWidget {
   const ManageProfileScreen({super.key});
@@ -13,9 +15,7 @@ class ManageProfileScreen extends StatefulWidget {
 }
 
 class _ManageProfileScreenState extends State<ManageProfileScreen> {
-  static const Color _primary = Color(0xFF13EC5B);
-  static const Color _lightBackground = Color(0xFFF6F8F6);
-  static const Color _darkBackground = Color(0xFF102216);
+  static const Color _primary = StaffDesignSystem.primary;
 
   bool _isLoading = true;
   String _fullName = '';
@@ -33,7 +33,7 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token') ?? '';
 
-      final url = Uri.parse('http://localhost:5200/api/auth/me');
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/api/auth/me');
       final response = await http.get(
         url,
         headers: {
@@ -42,13 +42,26 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
         },
       );
 
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final isSuccess =
+          data['success'] == true ||
+          data['isSuccess'] == true ||
+          data['Success'] == true;
+      final payload = (data['data'] ?? data['Data']) as Map<String, dynamic>?;
+      if (response.statusCode == 200 && isSuccess && payload != null) {
       final data = jsonDecode(response.body);
-      if (response.statusCode == 200 && data['isSuccess'] == true) {
+      final isSuccess = data['success'] == true || data['isSuccess'] == true;
+      if (response.statusCode == 200 && isSuccess) {
         if (mounted) {
           setState(() {
-            _fullName = data['data']['fullName'] ?? 'N/A';
-            _email = data['data']['email'] ?? 'N/A';
-            _role = data['data']['role']?.toString().toUpperCase() ?? 'STAFF';
+            _fullName =
+                (payload['fullName'] ?? payload['FullName'] ?? 'N/A')
+                    .toString();
+            _email = (payload['email'] ?? payload['Email'] ?? 'N/A').toString();
+            _role =
+                (payload['role'] ?? payload['Role'] ?? 'STAFF')
+                    .toString()
+                    .toUpperCase();
             _isLoading = false;
           });
         }
@@ -64,10 +77,7 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
@@ -83,9 +93,9 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? _darkBackground : _lightBackground;
-    final cardColor = isDark ? const Color(0xFF1A2F20) : Colors.white;
-    final muted = isDark ? const Color(0xFF9DB9A6) : const Color(0xFF64748B);
+    final bgColor = context.backgroundColor;
+    final cardColor = context.cardColor;
+    final muted = context.textSecondary;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -99,7 +109,7 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                 Container(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Text(
-                    'Tai khoan',
+                    'Tài khoản',
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -152,7 +162,7 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                                         ),
                                         child: const Icon(
                                           Icons.edit,
-                                          color: Color(0xFF102216),
+                                          color: Color(0xFF0F172A),
                                           size: 18,
                                         ),
                                       ),
@@ -203,8 +213,8 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                               cardColor: cardColor,
                               icon: Icons.key,
                               iconColor: _primary,
-                              title: 'Doi mat khau',
-                              subtitle: 'Bao mat tai khoan',
+                              title: 'Đổi mật khẩu',
+                              subtitle: 'Bảo mật tài khoản',
                             ),
                             const SizedBox(height: 10),
                             _menuCard(
@@ -212,8 +222,8 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                               cardColor: cardColor,
                               icon: Icons.notifications,
                               iconColor: _primary,
-                              title: 'Thong bao',
-                              subtitle: 'Cap nhat he thong',
+                              title: 'Thông báo',
+                              subtitle: 'Cập nhật hệ thống',
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -245,8 +255,8 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                               cardColor: cardColor.withValues(alpha: 0.6),
                               icon: Icons.settings,
                               iconColor: Colors.grey,
-                              title: 'Cai dat',
-                              subtitle: 'Chi danh cho quan tri vien',
+                              title: 'Cài đặt',
+                              subtitle: 'Chỉ dành cho quản trị viên',
                               enabled: false,
                               trailing: const Icon(Icons.lock, color: Colors.grey),
                             ),
@@ -264,7 +274,7 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                                       const Icon(Icons.logout, color: Colors.red),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Dang xuat',
+                                        'Đăng xuất',
                                         style: GoogleFonts.inter(
                                           color: Colors.red,
                                           fontWeight: FontWeight.w600,
@@ -303,7 +313,9 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
     return Container(
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.borderColor),
+        boxShadow: StaffDesignSystem.shadowLight,
       ),
       child: ListTile(
         enabled: enabled,

@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:prm393_booking_app/features/staff_order/data/staff_order_repository.dart';
-import 'package:prm393_booking_app/features/staff_order/presentation/staff_theme.dart';
+import 'package:prm393_booking_app/features/staff_order/presentation/staff_design_system.dart';
+import 'package:prm393_booking_app/features/staff_order/presentation/widgets/staff_widgets.dart';
 
 class OrderDetailStatusScreen extends StatefulWidget {
   const OrderDetailStatusScreen({super.key});
@@ -15,12 +17,27 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
   late Future<_OrderDetailVm> _future;
   StaffOrderContext? _context;
   String _paymentMethod = 'cash';
+  bool _mealCompletedConfirmed = false;
+  Timer? _refreshTimer;
 
   static const List<_PaymentMethodOption> _paymentMethods = <_PaymentMethodOption>[
-    _PaymentMethodOption(value: 'cash', label: 'Tien mat'),
-    _PaymentMethodOption(value: 'card', label: 'The'),
-    _PaymentMethodOption(value: 'qr_transfer', label: 'Chuyen khoan QR'),
+    _PaymentMethodOption(value: 'cash', label: 'Tiền mặt'),
+    _PaymentMethodOption(value: 'card', label: 'Thẻ'),
+    _PaymentMethodOption(value: 'qr_transfer', label: 'Chuyển khoản QR'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _future = _load();
+      });
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -28,20 +45,59 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
     _future = _load();
   }
 
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
   Future<_OrderDetailVm> _load() async {
     final arg = ModalRoute.of(context)?.settings.arguments;
     _context = arg is StaffOrderContext ? arg : await _repository.getActiveContext();
     if (_context == null) {
-      throw Exception('Khong tim thay order dang phuc vu.');
+      throw Exception('Không tìm thấy order đang phục vụ.');
     }
 
     final order = await _repository.getOrder(_context!.orderId);
     final items = await _repository.getOrderItems(_context!.orderId);
-
     return _OrderDetailVm(order: order, items: items, context: _context!);
   }
 
   Future<void> _checkout({required int orderId, required double taxAmount}) async {
+    if (!_mealCompletedConfirmed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng xác nhận khách đã ăn xong trước khi thanh toán.')),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Xác nhận hoàn tất bữa ăn'),
+          content: Text(
+            'Bạn muốn thanh toán đơn #$orderId bằng ${_paymentMethodLabel(_paymentMethod)}?\n\n'
+            'Sau khi xác nhận, bữa ăn sẽ được kết thúc.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Huỷ'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Xác nhận'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
     try {
       await _repository.checkout(
         orderId: orderId,
@@ -52,29 +108,23 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Da checkout thanh cong.')),
+        const SnackBar(content: Text('Đã thanh toán thành công.')),
       );
-      setState(() {
-        _future = _load();
-      });
+      Navigator.pushNamedAndRemoveUntil(context, '/staff/home', (route) => false);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? StaffTheme.backgroundDark : StaffTheme.backgroundLight;
-    final card = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final border = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-    final titleColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final muted = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final isDark = context.isDarkMode;
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: context.backgroundColor,
       body: SafeArea(
         child: FutureBuilder<_OrderDetailVm>(
           future: _future,
@@ -84,29 +134,32 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
             }
 
             if (snapshot.hasError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Khong tai duoc chi tiet order', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 8),
-                      Text('${snapshot.error}', textAlign: TextAlign.center),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => setState(() => _future = _load()),
-                        child: const Text('Thu lai'),
-                      ),
-                    ],
-                  ),
-                ),
+              final errorText = snapshot.error.toString();
+              final isNoActiveOrder = errorText.contains('Không tìm thấy order đang phục vụ');
+              return EmptyState(
+                icon: Icons.error_outline,
+                title: 'Không tải được chi tiết đơn hàng',
+                description: errorText,
+                actionLabel: isNoActiveOrder ? 'Về trang staff' : 'Thử lại',
+                onAction: () {
+                  if (isNoActiveOrder) {
+                    Navigator.pushNamedAndRemoveUntil(context, '/staff/home', (route) => false);
+                    return;
+                  }
+                  setState(() {
+                    _future = _load();
+                  });
+                },
               );
             }
 
             final vm = snapshot.data!;
+            final statusNormalized = vm.order.status.trim().toLowerCase();
+            final isCompletedOrder =
+              statusNormalized == 'completed' || statusNormalized == 'checkedout' || statusNormalized == 'finished';
             final vat = vm.order.totalAmount * 0.08;
-            final grandTotal = vm.order.totalAmount + vat;
+            final grandTotal = vm.order.invoiceFinalTotal ?? (vm.order.totalAmount + vat);
+            final itemCount = vm.items.fold<int>(0, (sum, item) => sum + item.quantity);
 
             return Align(
               alignment: Alignment.topCenter,
@@ -116,7 +169,10 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: border))),
+                      decoration: BoxDecoration(
+                        color: context.cardColor,
+                        border: Border(bottom: BorderSide(color: context.borderColor)),
+                      ),
                       child: Row(
                         children: [
                           IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back)),
@@ -124,10 +180,17 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
                             child: Text(
                               vm.context.tableName,
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: titleColor),
+                              style: StaffTypography.titleLarge(isDark),
                             ),
                           ),
-                          IconButton(onPressed: () => setState(() => _future = _load()), icon: const Icon(Icons.refresh)),
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _future = _load();
+                              });
+                            },
+                            icon: const Icon(Icons.refresh),
+                          ),
                         ],
                       ),
                     ),
@@ -138,8 +201,10 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0x1F94A3B8) : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(12),
+                              color: context.cardColor,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: context.borderColor),
+                              boxShadow: StaffDesignSystem.shadowLight,
                             ),
                             child: Row(
                               children: [
@@ -147,166 +212,229 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
                                   width: 40,
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: StaffTheme.primary.withValues(alpha: 0.2),
+                                    color: StaffDesignSystem.primary.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: const Icon(Icons.group, color: StaffTheme.primary),
+                                  child: const Icon(Icons.group, color: StaffDesignSystem.primary),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    '${vm.context.guestCount} khach - ${_timeOfDay(vm.context.checkInTime)}',
-                                    style: GoogleFonts.inter(color: titleColor, fontWeight: FontWeight.w600),
+                                    '${vm.context.guestCount} khách - ${_timeOfDay(vm.context.checkInTime)}',
+                                    style: StaffTypography.titleSmall(isDark),
                                   ),
                                 ),
-                                Text('Dang phuc vu', style: GoogleFonts.inter(fontSize: 12, color: muted)),
+                                StatusBadge(status: isCompletedOrder ? 'completed' : 'serving', isSmall: true),
                               ],
                             ),
                           ),
                           const SizedBox(height: 14),
-                          Text('Chi tiet mon goi', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: titleColor)),
+                          SectionHeader(title: 'Chi tiết món gọi'),
                           const SizedBox(height: 10),
-                          for (final item in vm.items)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: card,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: border),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 56,
-                                      height: 56,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(10),
-                                        color: StaffTheme.primary.withValues(alpha: 0.12),
+                          if (vm.items.isEmpty)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: context.cardColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: context.borderColor),
+                              ),
+                              child: Text(
+                                'Chưa có món nào trong đơn.',
+                                style: StaffTypography.bodyMedium(isDark),
+                              ),
+                            )
+                          else
+                            for (final item in vm.items)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: context.cardColor,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: context.borderColor),
+                                    boxShadow: StaffDesignSystem.shadowLight,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 56,
+                                        height: 56,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(10),
+                                          color: StaffDesignSystem.primary.withValues(alpha: 0.12),
+                                        ),
+                                        child: const Icon(Icons.fastfood, color: StaffDesignSystem.primary),
                                       ),
-                                      child: const Icon(Icons.fastfood, color: StaffTheme.primary),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  item.menuItemName,
-                                                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: titleColor),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(item.menuItemName, style: StaffTypography.titleMedium(isDark)),
                                                 ),
-                                              ),
-                                              Text(_formatVnd(item.unitPrice), style: GoogleFonts.inter(fontSize: 16, color: titleColor, fontWeight: FontWeight.w600)),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text('So luong: ${item.quantity}', style: GoogleFonts.inter(color: muted)),
-                                          const SizedBox(height: 6),
-                                          _statusChip(item.itemStatus),
-                                        ],
+                                                Text(_formatVnd(item.unitPrice), style: StaffTypography.titleSmall(isDark)),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 3),
+                                            Text('Số lượng: ${item.quantity}', style: StaffTypography.bodySmall(isDark)),
+                                            const SizedBox(height: 6),
+                                            _itemStatusChip(item.itemStatus, isDark),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
                           const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0x1F94A3B8) : const Color(0xFFF8FAFC),
+                              color: context.cardColor,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: border),
+                              border: Border.all(color: context.borderColor),
                             ),
                             child: Text(
-                              vm.order.note.isEmpty ? 'Khong co ghi chu cho bep.' : vm.order.note,
-                              style: GoogleFonts.inter(color: muted),
+                              vm.order.note.isEmpty ? 'Không có ghi chú cho bếp.' : vm.order.note,
+                              style: StaffTypography.bodyMedium(isDark),
                             ),
                           ),
                           const SizedBox(height: 16),
                           Container(
                             padding: const EdgeInsets.only(top: 8),
-                            decoration: BoxDecoration(border: Border(top: BorderSide(color: border))),
+                            decoration: BoxDecoration(border: Border(top: BorderSide(color: context.borderColor))),
                             child: Column(
                               children: [
-                                _summaryRow('Tong tien mon (${vm.items.length})', _formatVnd(vm.order.totalAmount), muted),
-                                _summaryRow('Thue VAT (8%)', _formatVnd(vat), muted),
+                                _summaryRow('Tổng tiền món ($itemCount)', _formatVnd(vm.order.totalAmount), context.textSecondary, isDark),
+                                _summaryRow('Thuế VAT (8%)', _formatVnd(vat), context.textSecondary, isDark),
+                                if (vm.order.invoicePaidAt != null)
+                                  _summaryRow(
+                                    'Đã thanh toán lúc',
+                                    _formatDateTime(vm.order.invoicePaidAt!),
+                                    context.textSecondary,
+                                    isDark,
+                                  ),
                                 const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Thanh tien', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: titleColor)),
-                                    Text(_formatVnd(grandTotal), style: GoogleFonts.inter(fontSize: 21, color: StaffTheme.primary, fontWeight: FontWeight.w700)),
+                                    Text('Thành tiền', style: StaffTypography.titleLarge(isDark)),
+                                    Text(
+                                      _formatVnd(grandTotal),
+                                      style: StaffTypography.headlineSmall(isDark).copyWith(color: StaffDesignSystem.primaryDark),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                DropdownButtonFormField<String>(
-                                  initialValue: _paymentMethod,
-                                  decoration: InputDecoration(
-                                    labelText: 'Phuong thuc thanh toan',
-                                    labelStyle: GoogleFonts.inter(color: muted),
-                                    filled: true,
-                                    fillColor: card,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(color: border),
+                                if (isCompletedOrder)
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEAF9F1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: const Color(0xFF9FD8BC)),
                                     ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(color: border),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Đơn đã thanh toán và hoàn tất.', style: StaffTypography.titleSmall(isDark)),
+                                        if ((vm.order.invoicePaymentMethod ?? '').isNotEmpty)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 4),
+                                            child: Text(
+                                              'Phương thức: ${_paymentMethodLabel(vm.order.invoicePaymentMethod!)}',
+                                              style: StaffTypography.bodySmall(isDark),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  )
+                                else ...[
+                                  DropdownButtonFormField<String>(
+                                    initialValue: _paymentMethod,
+                                    decoration: InputDecoration(
+                                      labelText: 'Phương thức thanh toán',
+                                      labelStyle: StaffTypography.bodySmall(isDark),
+                                      filled: true,
+                                      fillColor: context.cardColor,
+                                    ),
+                                    items: _paymentMethods
+                                        .map(
+                                          (method) => DropdownMenuItem<String>(
+                                            value: method.value,
+                                            child: Text(method.label),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (value) {
+                                      if (value == null) {
+                                        return;
+                                      }
+                                      setState(() {
+                                        _paymentMethod = value;
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF6E8),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: const Color(0xFFF4C88B)),
+                                    ),
+                                    child: CheckboxListTile(
+                                      value: _mealCompletedConfirmed,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _mealCompletedConfirmed = value ?? false;
+                                        });
+                                      },
+                                      title: const Text('Xác nhận khách đã ăn xong'),
+                                      subtitle: const Text(
+                                        'Chỉ bật mục này khi khách không gọi thêm món và sẵn sàng thanh toán.',
+                                      ),
+                                      controlAffinity: ListTileControlAffinity.leading,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10),
                                     ),
                                   ),
-                                  items: _paymentMethods
-                                      .map(
-                                        (method) => DropdownMenuItem<String>(
-                                          value: method.value,
-                                          child: Text(method.label),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            side: const BorderSide(color: StaffDesignSystem.primary, width: 1.5),
+                                            foregroundColor: StaffDesignSystem.primaryDark,
+                                            padding: const EdgeInsets.symmetric(vertical: 13),
+                                          ),
+                                          onPressed: () => Navigator.pushNamed(context, '/staff/order', arguments: vm.context),
+                                          icon: const Icon(Icons.add_circle_outline),
+                                          label: const Text('Gọi thêm món'),
                                         ),
-                                      )
-                                      .toList(),
-                                  onChanged: (value) {
-                                    if (value == null) {
-                                      return;
-                                    }
-                                    setState(() {
-                                      _paymentMethod = value;
-                                    });
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(color: StaffTheme.primary, width: 2),
-                                          foregroundColor: StaffTheme.primary,
-                                          padding: const EdgeInsets.symmetric(vertical: 13),
-                                        ),
-                                        onPressed: () => Navigator.pushNamed(context, '/staff/order', arguments: vm.context),
-                                        icon: const Icon(Icons.add_circle),
-                                        label: const Text('Goi them mon'),
                                       ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: FilledButton.icon(
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor: StaffTheme.primary,
-                                          foregroundColor: StaffTheme.backgroundDark,
-                                          padding: const EdgeInsets.symmetric(vertical: 13),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: FilledButton.icon(
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: StaffDesignSystem.primary,
+                                            foregroundColor: const Color(0xFF102216),
+                                            padding: const EdgeInsets.symmetric(vertical: 13),
+                                          ),
+                                          onPressed: _mealCompletedConfirmed
+                                              ? () => _checkout(orderId: vm.order.id, taxAmount: vat)
+                                              : null,
+                                          icon: const Icon(Icons.payments),
+                                          label: const Text('Thanh toán & hoàn tất bữa ăn'),
                                         ),
-                                        onPressed: () => _checkout(orderId: vm.order.id, taxAmount: vat),
-                                        icon: const Icon(Icons.payments),
-                                        label: const Text('Thanh toan'),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -323,44 +451,60 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
     );
   }
 
-  Widget _statusChip(String status) {
+  Widget _itemStatusChip(String status, bool isDark) {
     final normalized = status.toLowerCase();
-    var color = const Color(0xFF64748B);
-    var label = status;
+    Color bg;
+    Color fg;
+    String label;
 
     if (normalized == 'pending') {
-      color = const Color(0xFFF59E0B);
-      label = 'Cho bep';
+      bg = const Color(0xFFFFF6E8);
+      fg = const Color(0xFFB56A00);
+      label = 'Chờ bếp';
     } else if (normalized == 'preparing') {
-      color = const Color(0xFF3B82F6);
-      label = 'Dang che bien';
+      bg = const Color(0xFFE8F3FF);
+      fg = const Color(0xFF1D4ED8);
+      label = 'Đang chế biến';
     } else if (normalized == 'served') {
-      color = const Color(0xFF22C55E);
-      label = 'Da len mon';
+      bg = const Color(0xFFEAF9F1);
+      fg = const Color(0xFF0E9F6E);
+      label = 'Đã lên món';
+    } else {
+      bg = const Color(0xFFF2F4F7);
+      fg = const Color(0xFF667085);
+      label = status;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(label, style: GoogleFonts.inter(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+      child: Text(label, style: StaffTypography.labelSmall(isDark).copyWith(color: fg)),
     );
   }
 
-  Widget _summaryRow(String label, String value, Color color) {
+  Widget _summaryRow(String label, String value, Color color, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: GoogleFonts.inter(color: color, fontSize: 13)),
-          Text(value, style: GoogleFonts.inter(color: color, fontSize: 13)),
+          Text(label, style: StaffTypography.bodySmall(isDark).copyWith(color: color)),
+          Text(value, style: StaffTypography.bodySmall(isDark).copyWith(color: color)),
         ],
       ),
     );
+  }
+
+  String _paymentMethodLabel(String value) {
+    for (final method in _paymentMethods) {
+      if (method.value == value) {
+        return method.label;
+      }
+    }
+    return value;
   }
 
   String _formatVnd(num amount) {
@@ -374,14 +518,30 @@ class _OrderDetailStatusScreenState extends State<OrderDetailStatusScreen> {
         buffer.write('.');
       }
     }
-    return '${buffer.toString().split('').reversed.join()}d';
+    return '${buffer.toString().split('').reversed.join()}đ';
   }
 
   String _timeOfDay(DateTime dateTime) {
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    final h = dateTime.hour.toString().padLeft(2, '0');
+    final m = dateTime.minute.toString().padLeft(2, '0');
+    return '$h:$m';
   }
+
+  String _formatDateTime(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final year = value.year;
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year $hour:$minute';
+  }
+}
+
+class _PaymentMethodOption {
+  const _PaymentMethodOption({required this.value, required this.label});
+
+  final String value;
+  final String label;
 }
 
 class _OrderDetailVm {
@@ -394,11 +554,4 @@ class _OrderDetailVm {
   final OrderData order;
   final List<OrderItemData> items;
   final StaffOrderContext context;
-}
-
-class _PaymentMethodOption {
-  const _PaymentMethodOption({required this.value, required this.label});
-
-  final String value;
-  final String label;
 }
