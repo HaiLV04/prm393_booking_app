@@ -15,6 +15,7 @@ import 'package:prm393_booking_app/features/admin/presentation/screens/manage_st
 import 'package:prm393_booking_app/features/admin/presentation/screens/category_menu_screen.dart';
 import 'package:prm393_booking_app/features/admin/presentation/screens/statistics_screen.dart';
 import 'package:prm393_booking_app/features/admin/presentation/screens/admin_notifications_screen.dart';
+import 'package:prm393_booking_app/features/admin/presentation/screens/manage_settings_screen.dart';
 
 // Reservation
 import 'package:prm393_booking_app/features/reservation/presentation/screens/reservation_list_screen.dart';
