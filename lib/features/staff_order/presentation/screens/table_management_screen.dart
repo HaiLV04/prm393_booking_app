@@ -13,7 +13,8 @@ class TableManagementScreen extends StatefulWidget {
 class _TableManagementScreenState extends State<TableManagementScreen> {
   final StaffOrderRepository _repository = StaffOrderRepository();
   late Future<_TablesVm> _tablesFuture;
-  String _filterStatus = 'all'; // all, occupied, available, reserved, unavailable
+  String _filterStatus =
+      'all'; // all, occupied, available, reserved, unavailable
 
   @override
   void initState() {
@@ -55,13 +56,21 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
               );
             }
 
-            final vm = snapshot.data ?? _TablesVm(tables: const [], reservations: const []);
+            final vm =
+                snapshot.data ??
+                _TablesVm(tables: const [], reservations: const []);
             final tables = vm.tables;
             final filtered = _filterStatus == 'all'
                 ? tables
-                : tables.where((t) => t.status.toLowerCase() == _filterStatus).toList();
-            final availableCount = tables.where((table) => table.status.toLowerCase() == 'available').length;
-            final occupiedCount = tables.where((table) => table.status.toLowerCase() == 'occupied').length;
+                : tables
+                      .where((t) => t.status.toLowerCase() == _filterStatus)
+                      .toList();
+            final availableCount = tables
+                .where((table) => table.status.toLowerCase() == 'available')
+                .length;
+            final occupiedCount = tables
+                .where((table) => table.status.toLowerCase() == 'occupied')
+                .length;
 
             return Align(
               alignment: Alignment.topCenter,
@@ -89,33 +98,48 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
                             child: Row(
                               children: [
                                 _buildFilterChip('Tất cả', 'all'),
-                                const SizedBox(width: StaffDesignSystem.spacing8),
+                                const SizedBox(
+                                  width: StaffDesignSystem.spacing8,
+                                ),
                                 _buildFilterChip('Đang chiếm', 'occupied'),
-                                const SizedBox(width: StaffDesignSystem.spacing8),
+                                const SizedBox(
+                                  width: StaffDesignSystem.spacing8,
+                                ),
                                 _buildFilterChip('Trống', 'available'),
-                                const SizedBox(width: StaffDesignSystem.spacing8),
-                                _buildFilterChip('Đặt trước', 'reserved'),
                               ],
                             ),
                           ),
                           const SizedBox(height: StaffDesignSystem.spacing24),
                           Container(
-                            padding: const EdgeInsets.all(StaffDesignSystem.spacing12),
+                            padding: const EdgeInsets.all(
+                              StaffDesignSystem.spacing12,
+                            ),
                             decoration: BoxDecoration(
                               color: context.cardColor,
                               border: Border.all(color: context.borderColor),
-                              borderRadius: BorderRadius.circular(StaffDesignSystem.radiusLarge),
+                              borderRadius: BorderRadius.circular(
+                                StaffDesignSystem.radiusLarge,
+                              ),
                             ),
                             child: Row(
                               children: [
                                 Expanded(
-                                  child: _buildSummaryItem('Tổng bàn', '${tables.length}'),
+                                  child: _buildSummaryItem(
+                                    'Tổng bàn',
+                                    '${tables.length}',
+                                  ),
                                 ),
                                 Expanded(
-                                  child: _buildSummaryItem('Trống', '$availableCount'),
+                                  child: _buildSummaryItem(
+                                    'Trống',
+                                    '$availableCount',
+                                  ),
                                 ),
                                 Expanded(
-                                  child: _buildSummaryItem('Đang phục vụ', '$occupiedCount'),
+                                  child: _buildSummaryItem(
+                                    'Đang phục vụ',
+                                    '$occupiedCount',
+                                  ),
                                 ),
                               ],
                             ),
@@ -125,12 +149,13 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
                           GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: StaffDesignSystem.spacing12,
-                              mainAxisSpacing: StaffDesignSystem.spacing12,
-                              childAspectRatio: 1,
-                            ),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: StaffDesignSystem.spacing12,
+                                  mainAxisSpacing: StaffDesignSystem.spacing12,
+                                  childAspectRatio: 1,
+                                ),
                             itemCount: filtered.length,
                             itemBuilder: (context, index) {
                               final table = filtered[index];
@@ -143,7 +168,9 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
                               icon: Icons.table_chart_outlined,
                               title: 'Không có bàn',
                               description: 'Không có bàn với trạng thái này',
-                              iconColor: StaffDesignSystem.primary.withValues(alpha: 0.3),
+                              iconColor: StaffDesignSystem.primary.withValues(
+                                alpha: 0.3,
+                              ),
                             ),
                           ],
                         ],
@@ -169,9 +196,7 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
       backgroundColor: context.cardColor,
       selectedColor: StaffDesignSystem.primary.withValues(alpha: 0.15),
       side: BorderSide(
-        color: isSelected
-            ? StaffDesignSystem.primary
-            : context.borderColor,
+        color: isSelected ? StaffDesignSystem.primary : context.borderColor,
       ),
     );
   }
@@ -197,7 +222,9 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
             Container(
               decoration: BoxDecoration(
                 color: statusColor.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(StaffDesignSystem.radiusLarge),
+                borderRadius: BorderRadius.circular(
+                  StaffDesignSystem.radiusLarge,
+                ),
               ),
             ),
             // Table info
@@ -217,8 +244,9 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
                     child: Center(
                       child: Text(
                         table.name.replaceAll('Table', 'B'),
-                        style: StaffTypography.titleMedium(context.isDarkMode)
-                            .copyWith(color: statusColor),
+                        style: StaffTypography.titleMedium(
+                          context.isDarkMode,
+                        ).copyWith(color: statusColor),
                       ),
                     ),
                   ),
@@ -229,8 +257,9 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
                     children: [
                       Text(
                         _statusLabel(table.status),
-                        style: StaffTypography.labelSmall(context.isDarkMode)
-                            .copyWith(color: statusColor),
+                        style: StaffTypography.labelSmall(
+                          context.isDarkMode,
+                        ).copyWith(color: statusColor),
                       ),
                       const SizedBox(height: StaffDesignSystem.spacing4),
                       Text(
@@ -257,23 +286,26 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
     );
   }
 
-  ReservationData? _findActiveReservation(int tableId, List<ReservationData> reservations) {
-    final active = reservations
-        .where((reservation) {
-          final status = reservation.status.toLowerCase();
-          return reservation.tableId == tableId &&
-              status != 'cancelled' &&
-              status != 'completed' &&
-              status != 'checkedout' &&
-              status != 'finished';
-        })
-        .toList()
-      ..sort((a, b) => b.checkInTime.compareTo(a.checkInTime));
+  ReservationData? _findActiveReservation(
+    int tableId,
+    List<ReservationData> reservations,
+  ) {
+    final active = reservations.where((reservation) {
+      final status = reservation.status.toLowerCase();
+      return reservation.tableId == tableId &&
+          status != 'cancelled' &&
+          status != 'completed' &&
+          status != 'checkedout' &&
+          status != 'finished';
+    }).toList()..sort((a, b) => b.checkInTime.compareTo(a.checkInTime));
 
     return active.isEmpty ? null : active.first;
   }
 
-  Future<void> _showTableActions(TableData table, List<ReservationData> reservations) async {
+  Future<void> _showTableActions(
+    TableData table,
+    List<ReservationData> reservations,
+  ) async {
     final activeReservation = _findActiveReservation(table.id, reservations);
     final normalizedStatus = table.status.toLowerCase();
 
@@ -305,10 +337,15 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
                     label: 'Đánh dấu đang phục vụ',
                     onTap: () async {
                       Navigator.pop(dialogContext);
-                      await _setTableStatus(table.id, 'occupied', 'Đã đổi trạng thái sang Đang phục vụ');
+                      await _setTableStatus(
+                        table.id,
+                        'occupied',
+                        'Đã đổi trạng thái sang Đang phục vụ',
+                      );
                     },
                   ),
-                if (normalizedStatus == 'occupied' || normalizedStatus == 'reserved')
+                if (normalizedStatus == 'occupied' ||
+                    normalizedStatus == 'reserved')
                   _buildActionButtonInDialog(
                     icon: Icons.person_off_outlined,
                     label: 'Khách rời bàn',
@@ -332,7 +369,11 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
                     label: 'Đặt bàn về trạng thái trống',
                     onTap: () async {
                       Navigator.pop(dialogContext);
-                      await _setTableStatus(table.id, 'available', 'Bàn đã chuyển về Trống');
+                      await _setTableStatus(
+                        table.id,
+                        'available',
+                        'Bàn đã chuyển về Trống',
+                      );
                     },
                   ),
               ],
@@ -361,10 +402,7 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
         child: OutlinedButton.icon(
           onPressed: onTap,
           icon: Icon(icon, size: 18),
-          label: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(label),
-          ),
+          label: Align(alignment: Alignment.centerLeft, child: Text(label)),
         ),
       ),
     );
@@ -394,10 +432,15 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
     ).then((_) => _reload());
   }
 
-  Future<void> _setTableStatus(int tableId, String status, String successMessage) async {
+  Future<void> _setTableStatus(
+    int tableId,
+    String status,
+    String successMessage,
+  ) async {
     final shouldContinue = await _confirmAction(
       title: 'Xác nhận cập nhật',
-      message: 'Bạn có chắc muốn đổi trạng thái bàn sang "${_statusLabel(status)}"?',
+      message:
+          'Bạn có chắc muốn đổi trạng thái bàn sang "${_statusLabel(status)}"?',
       confirmLabel: 'Xác nhận',
     );
     if (!shouldContinue) {
@@ -409,20 +452,28 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(successMessage)));
       await _reload();
     } catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
-  Future<void> _handleGuestLeft(ReservationData? reservation, int tableId) async {
+  Future<void> _handleGuestLeft(
+    ReservationData? reservation,
+    int tableId,
+  ) async {
     final shouldContinue = await _confirmAction(
       title: 'Xác nhận khách rời bàn',
-      message: 'Thao tác này sẽ trả bàn về trạng thái trống. Bạn muốn tiếp tục?',
+      message:
+          'Thao tác này sẽ trả bàn về trạng thái trống. Bạn muốn tiếp tục?',
       confirmLabel: 'Đồng ý',
     );
     if (!shouldContinue) {
@@ -433,21 +484,26 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
       if (reservation != null) {
         await _repository.cancelReservation(reservation.id);
       } else {
-        await _repository.updateTableStatus(tableId: tableId, status: 'available');
+        await _repository.updateTableStatus(
+          tableId: tableId,
+          status: 'available',
+        );
       }
 
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã xử lý khách rời bàn.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã xử lý khách rời bàn.')));
       await _reload();
     } catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -471,15 +527,17 @@ class _TableManagementScreenState extends State<TableManagementScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã hoàn thành hóa đơn.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã hoàn thành hóa đơn.')));
       await _reload();
     } catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 

@@ -44,7 +44,9 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
     final occupiedTables = tables
         .where((table) => table.status.toLowerCase() == 'occupied')
         .length;
-    final capacity = tables.isEmpty ? 0 : (occupiedTables / tables.length * 100).round();
+    final capacity = tables.isEmpty
+        ? 0
+        : (occupiedTables / tables.length * 100).round();
 
     final latest = List<ReservationData>.from(reservations)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -63,24 +65,25 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
     final tables = await _repository.getTables();
     final reservations = await _repository.getReservations();
 
-    final options = tables
-        .where((table) => table.isActive)
-        .map((table) {
-          final activeReservations = reservations
-              .where((reservation) =>
-                  reservation.tableId == table.id &&
-                  _isServingStatus(reservation.status) &&
-                  reservation.orderId != null)
+    final options = tables.where((table) => table.isActive).map((table) {
+      final activeReservations =
+          reservations
+              .where(
+                (reservation) =>
+                    reservation.tableId == table.id &&
+                    _isServingStatus(reservation.status) &&
+                    reservation.orderId != null,
+              )
               .toList()
             ..sort((a, b) => b.checkInTime.compareTo(a.checkInTime));
 
-          return _OrderTableOption(
-            table: table,
-            activeReservation: activeReservations.isEmpty ? null : activeReservations.first,
-          );
-        })
-        .toList()
-      ..sort((a, b) => a.table.name.compareTo(b.table.name));
+      return _OrderTableOption(
+        table: table,
+        activeReservation: activeReservations.isEmpty
+            ? null
+            : activeReservations.first,
+      );
+    }).toList()..sort((a, b) => a.table.name.compareTo(b.table.name));
 
     if (!mounted) {
       return;
@@ -114,8 +117,8 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                   final statusLabel = hasOrder
                       ? 'Đang phục vụ'
                       : status == 'available'
-                          ? 'Bàn trống'
-                          : option.table.status;
+                      ? 'Bàn trống'
+                      : option.table.status;
 
                   return ListTile(
                     leading: const Icon(Icons.table_restaurant_outlined),
@@ -166,11 +169,17 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
       return;
     }
 
-    Navigator.pushNamed(context, '/staff/order', arguments: selectedContext).then((_) {
+    Navigator.pushNamed(
+      context,
+      '/staff/order',
+      arguments: selectedContext,
+    ).then((_) {
       if (!mounted) {
         return;
       }
-      setState(() => _dashboardFuture = _loadDashboard());
+      setState(() {
+        _dashboardFuture = _loadDashboard();
+      });
     });
   }
 
@@ -196,7 +205,9 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                     children: [
                       TextFormField(
                         controller: customerNameCtrl,
-                        decoration: const InputDecoration(labelText: 'Tên khách hàng'),
+                        decoration: const InputDecoration(
+                          labelText: 'Tên khách hàng',
+                        ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Vui lòng nhập tên khách';
@@ -208,7 +219,9 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                       TextFormField(
                         controller: customerPhoneCtrl,
                         keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(labelText: 'Số điện thoại'),
+                        decoration: const InputDecoration(
+                          labelText: 'Số điện thoại',
+                        ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Vui lòng nhập số điện thoại';
@@ -238,7 +251,9 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                       ),
                       TextFormField(
                         controller: noteCtrl,
-                        decoration: const InputDecoration(labelText: 'Ghi chú (tuỳ chọn)'),
+                        decoration: const InputDecoration(
+                          labelText: 'Ghi chú (tuỳ chọn)',
+                        ),
                         maxLines: 2,
                       ),
                     ],
@@ -294,13 +309,17 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Đã nhận khách cho ${table.name}.')),
       );
-      setState(() => _dashboardFuture = _loadDashboard());
+      setState(() {
+        _dashboardFuture = _loadDashboard();
+      });
       return contextCreated;
     } catch (e) {
       if (!mounted) {
         return null;
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
       return null;
     }
   }
@@ -346,70 +365,80 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
             child: IndexedStack(
               index: _selectedNavIndex,
               children: [
-            // Index 0: Dashboard
-            FutureBuilder<_DashboardVm>(
-              future: _dashboardFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                // Index 0: Dashboard
+                FutureBuilder<_DashboardVm>(
+                  future: _dashboardFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                if (snapshot.hasError) {
-                  return EmptyState(
-                    icon: Icons.error_outline,
-                    title: 'Không tải được dữ liệu',
-                    description: snapshot.error.toString(),
-                    actionLabel: 'Thử lại',
-                    onAction: () => setState(() => _dashboardFuture = _loadDashboard()),
-                  );
-                }
+                    if (snapshot.hasError) {
+                      return EmptyState(
+                        icon: Icons.error_outline,
+                        title: 'Không tải được dữ liệu',
+                        description: snapshot.error.toString(),
+                        actionLabel: 'Thử lại',
+                        onAction: () => setState(() {
+                          _dashboardFuture = _loadDashboard();
+                        }),
+                      );
+                    }
 
-                final vm = snapshot.data!;
+                    final vm = snapshot.data!;
 
-                return Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 430),
-                    child: ListView(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      children: [
-                        StaffAppHeader(
-                          title: 'Bảng điều khiển',
-                          subtitle: 'Nhân viên',
-                          onRefresh: () => setState(() => _dashboardFuture = _loadDashboard()),
+                    return Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 430),
+                        child: ListView(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          children: [
+                            StaffAppHeader(
+                              title: 'Bảng điều khiển',
+                              subtitle: 'Nhân viên',
+                              onRefresh: () => setState(() {
+                                _dashboardFuture = _loadDashboard();
+                              }),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: StaffDesignSystem.spacing16,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Key Metrics Section
+                                  _buildMetricsSection(vm),
+                                  const SizedBox(
+                                    height: StaffDesignSystem.spacing32,
+                                  ),
+
+                                  // Quick Actions Section
+                                  _buildQuickActionsSection(),
+                                  const SizedBox(
+                                    height: StaffDesignSystem.spacing32,
+                                  ),
+
+                                  // Recent Activity Section
+                                  _buildRecentActivitySection(vm),
+                                  const SizedBox(
+                                    height: StaffDesignSystem.spacing16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: StaffDesignSystem.spacing16,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Key Metrics Section
-                              _buildMetricsSection(vm),
-                              const SizedBox(height: StaffDesignSystem.spacing32),
-
-                              // Quick Actions Section
-                              _buildQuickActionsSection(),
-                              const SizedBox(height: StaffDesignSystem.spacing32),
-
-                              // Recent Activity Section
-                              _buildRecentActivitySection(vm),
-                              const SizedBox(height: StaffDesignSystem.spacing16),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            // Index 1: Tables
-            const TableManagementScreen(),
-            // Index 2: Orders
-            const OrderManagementScreen(),
-            // Index 3: Profile
+                      ),
+                    );
+                  },
+                ),
+                // Index 1: Tables
+                const TableManagementScreen(),
+                // Index 2: Orders
+                const OrderManagementScreen(),
+                // Index 3: Profile
                 const ManageProfileScreen(),
               ],
             ),
@@ -540,16 +569,19 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
       children: [
         SectionHeader(title: 'Hoạt động gần đây'),
         const SizedBox(height: StaffDesignSystem.spacing12),
-        ...vm.notices.map((reservation) => Padding(
-          padding: const EdgeInsets.only(bottom: StaffDesignSystem.spacing12),
-          child: ListItemCard(
-            title: 'Bàn ${reservation.tableName}',
-            subtitle: '${reservation.guestCount} khách - ${reservation.customerName}',
-            leadingIcon: Icons.event_seat,
-            badge: StaffDesignSystem.getStatusLabel(reservation.status),
-            badgeColor: StaffDesignSystem.getStatusColor(reservation.status),
+        ...vm.notices.map(
+          (reservation) => Padding(
+            padding: const EdgeInsets.only(bottom: StaffDesignSystem.spacing12),
+            child: ListItemCard(
+              title: 'Bàn ${reservation.tableName}',
+              subtitle:
+                  '${reservation.guestCount} khách - ${reservation.customerName}',
+              leadingIcon: Icons.event_seat,
+              badge: StaffDesignSystem.getStatusLabel(reservation.status),
+              badgeColor: StaffDesignSystem.getStatusColor(reservation.status),
+            ),
           ),
-        )),
+        ),
       ],
     );
   }
@@ -621,7 +653,10 @@ class _DashboardVm {
 }
 
 class _OrderTableOption {
-  const _OrderTableOption({required this.table, required this.activeReservation});
+  const _OrderTableOption({
+    required this.table,
+    required this.activeReservation,
+  });
 
   final TableData table;
   final ReservationData? activeReservation;

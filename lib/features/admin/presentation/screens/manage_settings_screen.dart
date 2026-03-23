@@ -325,18 +325,7 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 14),
-            _tile(
-              icon: Icons.dark_mode,
-              title: 'App Theme',
-              subtitle: darkMode ? 'Dark' : 'Light',
-              onTap: () async {
-                await ThemeController.instance.setMode(
-                  darkMode ? ThemeMode.light : ThemeMode.dark,
-                );
-                if (mounted) setState(() {});
-              },
-            ),
+
             _divider(),
             _tile(
               icon: Icons.storefront,
