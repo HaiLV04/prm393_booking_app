@@ -85,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
           if (role == 'admin') {
             Navigator.pushReplacementNamed(context, '/admin');
           } else {
-            // Staff default landing page should be dashboard/home, not profile.
             Navigator.pushReplacementNamed(context, '/staff/home');
           }
         }

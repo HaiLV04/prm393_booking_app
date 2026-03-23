@@ -506,12 +506,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
               label: 'Đặt chỗ mới',
               description: 'Tạo đặt phòng',
               onTap: () {
-                Navigator.pushNamed(context, '/staff/reservation/create').then((_) {
-                  if (!mounted) {
-                    return;
-                  }
-                  setState(() => _dashboardFuture = _loadDashboard());
-                });
+                Navigator.pushReplacementNamed(context, '/reservations');
               },
               color: StaffDesignSystem.success,
             ),
