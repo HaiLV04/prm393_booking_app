@@ -1,5 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:prm393_booking_app/core/network/api_client.dart';
+import 'package:prm393_booking_app/features/admin/data/admin_facility_repository.dart';
+import 'package:prm393_booking_app/features/admin/data/admin_media_repository.dart';
 
 class AddEditTableScreen extends StatefulWidget {
   final String? tableId;
@@ -12,531 +18,445 @@ class AddEditTableScreen extends StatefulWidget {
 }
 
 class _AddEditTableScreenState extends State<AddEditTableScreen> {
+  static const Color _primary = Color(0xFF13EC5B);
+  static const Color _bg = Color(0xFF0B2518);
+  static const Color _card = Color(0xFF143523);
+  static const Color _muted = Color(0xFFA0B9AA);
+
   final _formKey = GlobalKey<FormState>();
   final _tableNameController = TextEditingController();
-  final _capacityController = TextEditingController();
+  final _capacityController = TextEditingController(text: '4');
+  final _imageUrlController = TextEditingController();
+  final _repository = AdminFacilityRepository();
+  final _mediaRepository = AdminMediaRepository();
 
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
+
+  int? _selectedAreaId;
   String _selectedStatus = 'available';
-  String? _selectedArea;
+  List<AreaItem> _areas = const [];
 
-  static const Color _primary = Color(0xFF13EC5B);
-  static const Color _bgLight = Color(0xFFF6F8F6);
-  static const Color _bgDark = Color(0xFF102216);
-  static const Color _surfaceDark = Color(0xFF1C2E23);
+  int? get _tableId => int.tryParse(widget.tableId ?? '');
 
-  final List<Map<String, String>> _areas = [
-    {'id': 'main_hall', 'name': 'Main Dining Hall'},
-    {'id': 'patio', 'name': 'Outdoor Patio'},
-    {'id': 'bar', 'name': 'Bar Area'},
-    {'id': 'private', 'name': 'Private Room A'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
+  }
 
   @override
   void dispose() {
     _tableNameController.dispose();
     _capacityController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _bootstrap() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      _areas = (await _repository.getAreas()).where((x) => x.isActive).toList();
+
+      if (widget.isEditing && _tableId != null && _tableId! > 0) {
+        final table = await _repository.getTableById(_tableId!);
+        _tableNameController.text = table.name;
+        _capacityController.text = table.capacity.toString();
+        _selectedStatus = table.status;
+        _selectedAreaId = table.areaId;
+        _imageUrlController.text =
+            await _mediaRepository.getTableImage(table.id) ?? '';
+      } else if (_areas.isNotEmpty) {
+        _selectedAreaId = _areas.first.id;
+      }
+    } on ApiException catch (e) {
+      _error = e.message;
+    } catch (_) {
+      _error = 'Unable to load table data';
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final areaId = _selectedAreaId;
+    final capacity = int.tryParse(_capacityController.text.trim());
+    if (areaId == null || capacity == null) {
+      return;
+    }
+
+    setState(() => _saving = true);
+
+    try {
+      int tableId = _tableId ?? 0;
+      if (widget.isEditing && _tableId != null && _tableId! > 0) {
+        await _repository.updateTable(
+          id: _tableId!,
+          areaId: areaId,
+          name: _tableNameController.text.trim(),
+          capacity: capacity,
+          status: _selectedStatus,
+        );
+      } else {
+        final created = await _repository.createTable(
+          areaId: areaId,
+          name: _tableNameController.text.trim(),
+          capacity: capacity,
+          status: _selectedStatus,
+        );
+        tableId = created.id;
+      }
+
+      if (tableId > 0) {
+        await _mediaRepository.setTableImage(
+          tableId,
+          _imageUrlController.text.trim(),
+        );
+      }
+
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Save failed: ${e.message}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? _bgDark : _bgLight;
-    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final subtitleColor = isDark
-        ? const Color(0xFF94A3B8)
-        : const Color(0xFF64748B);
-    final inputBg = isDark ? _surfaceDark : Colors.white;
-    final borderColor = isDark
-        ? const Color(0xFF2A4230)
-        : const Color(0xFFE2E8F0);
+    final title = widget.isEditing ? 'Edit Table' : 'Add Table';
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: _bg,
       appBar: AppBar(
-        backgroundColor: bgColor,
+        backgroundColor: _bg,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: textColor),
-          onPressed: () => Navigator.pop(context),
-        ),
+        centerTitle: false,
         title: Text(
-          widget.isEditing ? 'Edit Table' : 'Add Table',
+          title,
           style: GoogleFonts.manrope(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: textColor,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: _saveTable,
-            child: Text(
-              'Save',
-              style: GoogleFonts.manrope(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: _primary,
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Table Details Section
-                _buildSectionTitle('Table Details', textColor),
-                const SizedBox(height: 16),
-                _buildTableNameInput(
-                  textColor,
-                  subtitleColor,
-                  inputBg,
-                  borderColor,
-                ),
-                const SizedBox(height: 16),
-                _buildCapacityInput(
-                  textColor,
-                  subtitleColor,
-                  inputBg,
-                  borderColor,
-                ),
-                const SizedBox(height: 16),
-                _buildStatusSelector(textColor, subtitleColor),
-                const SizedBox(height: 24),
-                Divider(color: borderColor),
-                const SizedBox(height: 24),
-
-                // Location Assignment Section
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildSectionTitle('Location Assignment', textColor),
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to manage areas
-                      },
-                      child: Text(
-                        'Manage Areas',
-                        style: GoogleFonts.manrope(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: _primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildAreaDropdown(
-                  textColor,
-                  subtitleColor,
-                  inputBg,
-                  borderColor,
-                ),
-                const SizedBox(height: 20),
-                _buildMapSelector(isDark),
-                const SizedBox(height: 32),
-              ],
-            ),
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 30,
           ),
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _primary,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onPressed: _saveTable,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.save, color: Color(0xFF102216), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Save Table',
-                style: GoogleFonts.manrope(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF102216),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, Color color) {
-    return Text(
-      title,
-      style: GoogleFonts.manrope(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: color,
-      ),
-    );
-  }
-
-  Widget _buildTableNameInput(
-    Color textColor,
-    Color subtitleColor,
-    Color inputBg,
-    Color borderColor,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            'Table Name or Number',
-            style: GoogleFonts.manrope(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: subtitleColor,
-            ),
-          ),
-        ),
-        TextFormField(
-          controller: _tableNameController,
-          style: GoogleFonts.manrope(color: textColor),
-          decoration: InputDecoration(
-            hintText: 'e.g. Table 12 or T-12',
-            hintStyle: GoogleFonts.manrope(color: subtitleColor),
-            filled: true,
-            fillColor: inputBg,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter table name or number';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCapacityInput(
-    Color textColor,
-    Color subtitleColor,
-    Color inputBg,
-    Color borderColor,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            'Seating Capacity',
-            style: GoogleFonts.manrope(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: subtitleColor,
-            ),
-          ),
-        ),
-        TextFormField(
-          controller: _capacityController,
-          keyboardType: TextInputType.number,
-          style: GoogleFonts.manrope(color: textColor),
-          decoration: InputDecoration(
-            hintText: 'e.g. 4',
-            hintStyle: GoogleFonts.manrope(color: subtitleColor),
-            filled: true,
-            fillColor: inputBg,
-            suffixIcon: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Icon(Icons.group, color: subtitleColor),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter seating capacity';
-            }
-            if (int.tryParse(value) == null) {
-              return 'Please enter a valid number';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatusSelector(Color textColor, Color subtitleColor) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inputBg = isDark ? _surfaceDark : Colors.white;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            'Initial Status',
-            style: GoogleFonts.manrope(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: subtitleColor,
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: inputBg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : const Color(0xFFE2E8F0),
-            ),
-          ),
-          padding: const EdgeInsets.all(4),
-          child: Row(
-            children: [
-              _buildStatusButton('available', 'Available', textColor),
-              _buildStatusButton('reserved', 'Reserved', textColor),
-              _buildStatusButton('blocked', 'Blocked', textColor),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatusButton(String value, String label, Color textColor) {
-    final isSelected = _selectedStatus == value;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedStatus = value),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isSelected ? _primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: GoogleFonts.manrope(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: isSelected
-                  ? const Color(0xFF102216)
-                  : textColor.withOpacity(0.6),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAreaDropdown(
-    Color textColor,
-    Color subtitleColor,
-    Color inputBg,
-    Color borderColor,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            'Assign Area',
-            style: GoogleFonts.manrope(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: subtitleColor,
-            ),
-          ),
-        ),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedArea,
-          hint: Text(
-            'Select an area',
-            style: GoogleFonts.manrope(color: subtitleColor),
-          ),
-          style: GoogleFonts.manrope(color: textColor),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: inputBg,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-          items: _areas
-              .map(
-                (area) => DropdownMenuItem(
-                  value: area['id'],
-                  child: Text(area['name']!),
-                ),
-              )
-              .toList(),
-          onChanged: (value) => setState(() => _selectedArea = value),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select an area';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMapSelector(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            'Pin Location on Map',
-            style: GoogleFonts.manrope(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-            ),
-          ),
-        ),
-        GestureDetector(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Map feature coming soon',
-                  style: GoogleFonts.manrope(),
-                ),
-              ),
-            );
-          },
-          child: Container(
-            height: 200,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withOpacity(0.1)
-                    : const Color(0xFFE2E8F0),
-              ),
-              color: _surfaceDark,
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.location_on, color: _primary, size: 32),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Tap to set position',
-                          style: GoogleFonts.manrope(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _primary))
+          : _error != null
+              ? Center(
+                  child: Text(
+                    _error!,
+                    style: GoogleFonts.manrope(color: Colors.white),
+                  ),
+                )
+              : SafeArea(
+                  top: false,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.isEditing
+                                      ? 'Update table info and status'
+                                      : 'Create a new table for your floor plan',
+                                  style: GoogleFonts.manrope(
+                                    color: _muted,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: _card,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: const Color(0xFF1E4A34),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _label('Table Name'),
+                                      const SizedBox(height: 8),
+                                      TextFormField(
+                                        controller: _tableNameController,
+                                        style: _fieldTextStyle(),
+                                        decoration: _inputDecoration(
+                                          hint: 'e.g. Table A1',
+                                        ),
+                                        validator: (v) =>
+                                            v == null || v.trim().isEmpty
+                                                ? 'Required'
+                                                : null,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _label('Capacity'),
+                                      const SizedBox(height: 8),
+                                      TextFormField(
+                                        controller: _capacityController,
+                                        keyboardType: TextInputType.number,
+                                        style: _fieldTextStyle(),
+                                        decoration: _inputDecoration(
+                                          hint: 'Number of seats',
+                                        ),
+                                        validator: (v) {
+                                          final n = int.tryParse(v ?? '');
+                                          if (n == null || n < 1 || n > 100) {
+                                            return 'Capacity 1-100';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _label('Area'),
+                                      const SizedBox(height: 8),
+                                      DropdownButtonFormField<int>(
+                                        initialValue: _selectedAreaId,
+                                        isExpanded: true,
+                                        style: _fieldTextStyle(),
+                                        dropdownColor: const Color(0xFFF4F7F5),
+                                        decoration: _inputDecoration(
+                                          hint: 'Select area',
+                                        ),
+                                        items: _areas
+                                            .map(
+                                              (a) => DropdownMenuItem<int>(
+                                                value: a.id,
+                                                child: Text(
+                                                  a.name,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: GoogleFonts.manrope(
+                                                    color: const Color(0xFF163325),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                        onChanged: (v) =>
+                                            setState(() => _selectedAreaId = v),
+                                        validator: (v) =>
+                                            v == null ? 'Select area' : null,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _label('Status'),
+                                      const SizedBox(height: 8),
+                                      DropdownButtonFormField<String>(
+                                        initialValue: _selectedStatus,
+                                        isExpanded: true,
+                                        style: _fieldTextStyle(),
+                                        dropdownColor: const Color(0xFFF4F7F5),
+                                        decoration: _inputDecoration(
+                                          hint: 'Select status',
+                                        ),
+                                        items: const [
+                                          DropdownMenuItem(
+                                            value: 'available',
+                                            child: Text('Available'),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: 'occupied',
+                                            child: Text('Occupied'),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: 'reserved',
+                                            child: Text('Reserved'),
+                                          ),
+                                        ],
+                                        onChanged: (v) {
+                                          if (v != null) {
+                                            setState(() => _selectedStatus = v);
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _card,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              _imageUrlController.text.isEmpty
+                                                  ? Icons.image_not_supported
+                                                  : Icons.check_circle,
+                                              color: _imageUrlController.text.isEmpty
+                                                  ? _muted
+                                                  : _primary,
+                                              size: 18,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              child: Text(
+                                                _imageUrlController.text.isEmpty
+                                                    ? 'No image selected'
+                                                    : 'Image selected successfully',
+                                                style: GoogleFonts.manrope(
+                                                  color: _muted,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: () async {
+                                          final picker = ImagePicker();
+                                          final file = await picker.pickImage(
+                                            source: ImageSource.gallery,
+                                            maxWidth: 600,
+                                            maxHeight: 600,
+                                            imageQuality: 60,
+                                          );
+                                          if (file != null) {
+                                            final bytes = await file.readAsBytes();
+                                            final b64 = base64Encode(bytes);
+                                            final mime = file.mimeType ?? 'image/jpeg';
+                                            setState(() {
+                                              _imageUrlController.text =
+                                                  'data:$mime;base64,$b64';
+                                            });
+                                          }
+                                        },
+                                        icon: const Icon(Icons.upload, color: _primary),
+                                      ),
+                                      if (_imageUrlController.text.isNotEmpty)
+                                        IconButton(
+                                          onPressed: () =>
+                                              setState(() => _imageUrlController.clear()),
+                                          icon: const Icon(
+                                            Icons.clear,
+                                            color: Colors.orange,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                        decoration: BoxDecoration(
+                          color: _bg,
+                          border: Border(
+                            top: BorderSide(
+                              color: const Color(0xFF1E4A34).withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ),
+                        child: SizedBox(
+                          height: 48,
+                          child: FilledButton(
+                            onPressed: _saving ? null : _save,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: _primary,
+                              foregroundColor: const Color(0xFF0B2518),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                            child: Text(
+                              _saving ? 'Saving...' : (widget.isEditing ? 'Update Table' : 'Create Table'),
+                              style: GoogleFonts.manrope(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Tap the map to precisely position this table in the floor plan.',
-          style: GoogleFonts.manrope(
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-          ),
-        ),
-      ],
     );
   }
 
-  void _saveTable() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Table saved successfully',
-            style: GoogleFonts.manrope(),
-          ),
-          backgroundColor: _primary,
-        ),
-      );
-      Future.delayed(const Duration(milliseconds: 500), () {
-        Navigator.pop(context);
-      });
-    }
+  TextStyle _fieldTextStyle() {
+    return GoogleFonts.manrope(
+      color: const Color(0xFF163325),
+      fontWeight: FontWeight.w600,
+      fontSize: 15,
+    );
+  }
+
+  InputDecoration _inputDecoration({required String hint}) {
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFFD5E3DA)),
+    );
+
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.manrope(
+        color: const Color(0xFF72887C),
+        fontWeight: FontWeight.w500,
+      ),
+      filled: true,
+      fillColor: const Color(0xFFF4F7F5),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      border: border,
+      enabledBorder: border,
+      focusedBorder: border.copyWith(
+        borderSide: const BorderSide(color: _primary, width: 1.6),
+      ),
+      errorBorder: border.copyWith(
+        borderSide: const BorderSide(color: Color(0xFFE85D5D), width: 1.3),
+      ),
+    );
+  }
+
+  Widget _label(String text) {
+    return Text(
+      text,
+      style: GoogleFonts.manrope(
+        color: const Color(0xFFB7D0C2),
+        fontWeight: FontWeight.w700,
+        fontSize: 13,
+      ),
+    );
   }
 }

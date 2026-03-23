@@ -8,13 +8,13 @@ import 'package:prm393_booking_app/features/auth/presentation/screens/reset_pass
   as auth;
 
 // Admin
-import 'package:prm393_booking_app/features/admin/presentation/screens/admin_home_screen.dart';
 import 'package:prm393_booking_app/features/admin/presentation/screens/table_list_screen.dart';
 import 'package:prm393_booking_app/features/admin/presentation/screens/add_edit_table_screen.dart';
 import 'package:prm393_booking_app/features/admin/presentation/screens/manage_areas_screen.dart';
 import 'package:prm393_booking_app/features/admin/presentation/screens/manage_staff_account_screen.dart';
 import 'package:prm393_booking_app/features/admin/presentation/screens/category_menu_screen.dart';
 import 'package:prm393_booking_app/features/admin/presentation/screens/statistics_screen.dart';
+import 'package:prm393_booking_app/features/admin/presentation/screens/manage_settings_screen.dart';
 
 // Reservation
 import 'package:prm393_booking_app/features/reservation/presentation/screens/reservation_list_screen.dart';
@@ -86,7 +86,7 @@ class GourmetHavenApp extends StatelessWidget {
 
         // ============ ADMIN ROUTES (Management & monitoring) ============
         // Admin Dashboard: KPIs, revenue, busy status
-        '/admin': (_) => const AdminHomeScreen(),
+        '/admin': (_) => const AdminDashboardScreen(),
         '/admin/dashboard': (_) => const AdminDashboardScreen(),
 
         // Table Management: Add, edit, delete tables (CRUD)
@@ -101,6 +101,9 @@ class GourmetHavenApp extends StatelessWidget {
 
         // Menu & Category Management: Add, edit, delete menu items and categories
         '/admin/menu': (_) => const CategoryMenuScreen(),
+
+        // Settings: Restaurant details, appearance, and preferences
+        '/admin/settings': (_) => const ManageSettingsScreen(),
 
         // Statistics: Revenue, best-selling items, occupancy rates
         '/admin/statistics': (_) => const StatisticsScreen(),
