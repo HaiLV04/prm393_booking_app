@@ -1,26 +1,48 @@
 import 'package:flutter/material.dart';
-import 'package:prm393_booking_app/core/constants/app_colors.dart';
 
 class AdminDashboardStyles {
-  static const Color background = AppColors.backgroundLight;
-  static const Color card = AppColors.surfaceLight;
-  static const Color primary = AppColors.primary;
-  static Color borderColor = AppColors.primary.withOpacity(0.10);
+  static Color background(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? backgroundDark
+      : backgroundLight;
+  static const Color backgroundLight = Color(0xFFF6F8F6);
+  static const Color backgroundDark = Color(0xFF102216);
+  static const Color cardDark = Color(0xFF1A3322);
+  static const Color primary = Color(0xFF13EC5B);
+  static const Color primaryDark = Color(0xFF0EA341);
+
+  static Color card(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? cardDark : Colors.white;
+
+  static Color borderColor(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? primaryDark.withOpacity(0.18)
+      : primary.withOpacity(0.10);
 
   static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(12));
 
-  static TextStyle headerTitle(BuildContext context) => const TextStyle(
+  static TextStyle headerTitle(BuildContext context) => TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
-    color: AppColors.textMain,
+    color: _textPrimary(context),
   );
 
   static TextStyle smallMuted(BuildContext context) =>
-      const TextStyle(fontSize: 12, color: AppColors.textSub);
+      TextStyle(fontSize: 12, color: _textSecondary(context));
 
-  static TextStyle largeNumber(BuildContext context) => const TextStyle(
+  static TextStyle largeNumber(BuildContext context) => TextStyle(
     fontSize: 28,
     fontWeight: FontWeight.w800,
-    color: AppColors.textMain,
+    color: _textPrimary(context),
   );
+
+  static Color _textPrimary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? Color(0xFFE2E8F0)
+      : Color(0xFF1E293B);
+
+  static Color _textSecondary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? Color(0xFF94A3B8)
+      : Color(0xFF64748B);
 }

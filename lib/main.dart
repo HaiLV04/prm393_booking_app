@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:prm393_booking_app/features/admin/presentation/screens/admin_dashboard.dart';
+import 'package:prm393_booking_app/features/admin/presentation/screens/admin_home_screen.dart';
 
 // Auth
 import 'package:prm393_booking_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:prm393_booking_app/features/auth/presentation/screens/reset_password.dart'
-  as auth;
+    as auth;
 
 // Admin
 import 'package:prm393_booking_app/features/admin/presentation/screens/table_list_screen.dart';
@@ -87,7 +87,7 @@ class GourmetHavenApp extends StatelessWidget {
 
         // ============ ADMIN ROUTES (Management & monitoring) ============
         // Admin Dashboard: KPIs, revenue, busy status
-        '/admin': (_) => const AdminDashboardScreen(),
+        '/admin': (_) => const AdminHomeScreen(),
 
         // Table Management: Add, edit, delete tables (CRUD)
         '/admin/tables': (_) => const TableListScreen(areaName: 'All Tables'),

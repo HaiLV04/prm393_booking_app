@@ -53,14 +53,12 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
       if (response.statusCode == 200 && isSuccess && payload != null) {
         if (mounted) {
           setState(() {
-            _fullName =
-                (payload['fullName'] ?? payload['FullName'] ?? 'N/A')
-                    .toString();
+            _fullName = (payload['fullName'] ?? payload['FullName'] ?? 'N/A')
+                .toString();
             _email = (payload['email'] ?? payload['Email'] ?? 'N/A').toString();
-            _role =
-                (payload['role'] ?? payload['Role'] ?? 'STAFF')
-                    .toString()
-                    .toUpperCase();
+            _role = (payload['role'] ?? payload['Role'] ?? 'STAFF')
+                .toString()
+                .toUpperCase();
             _isLoading = false;
           });
         }
@@ -154,7 +152,10 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                                         color: isDark
                                             ? const Color(0xFF1A2F20)
                                             : const Color(0xFFE8F8ED),
-                                        border: Border.all(color: _primary, width: 4),
+                                        border: Border.all(
+                                          color: _primary,
+                                          width: 4,
+                                        ),
                                       ),
                                       child: Center(
                                         child: Text(
@@ -179,7 +180,10 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                                           decoration: BoxDecoration(
                                             color: _primary,
                                             shape: BoxShape.circle,
-                                            border: Border.all(color: bgColor, width: 2),
+                                            border: Border.all(
+                                              color: bgColor,
+                                              width: 2,
+                                            ),
                                           ),
                                           child: const Icon(
                                             Icons.edit,
@@ -252,46 +256,16 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                             const SizedBox(height: 10),
                             _menuCard(
                               context,
-                              cardColor: cardColor,
-                              icon: Icons.notifications,
-                              iconColor: _primary,
-                              title: 'Thông báo',
-                              subtitle: 'Cập nhật hệ thống',
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 24,
-                                    height: 24,
-                                    alignment: Alignment.center,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Text(
-                                      '3',
-                                      style: GoogleFonts.inter(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Icon(Icons.chevron_right, color: muted),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            _menuCard(
-                              context,
                               cardColor: cardColor.withValues(alpha: 0.6),
                               icon: Icons.settings,
                               iconColor: Colors.grey,
                               title: 'Cài đặt',
                               subtitle: 'Chỉ dành cho quản trị viên',
                               enabled: false,
-                              trailing: const Icon(Icons.lock, color: Colors.grey),
+                              trailing: const Icon(
+                                Icons.lock,
+                                color: Colors.grey,
+                              ),
                             ),
                             const SizedBox(height: 18),
                             Material(
@@ -300,11 +274,16 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
                                 onTap: _handleLogout,
                                 borderRadius: BorderRadius.circular(12),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Icon(Icons.logout, color: Colors.red),
+                                      const Icon(
+                                        Icons.logout,
+                                        color: Colors.red,
+                                      ),
                                       const SizedBox(width: 8),
                                       Text(
                                         'Đăng xuất',
@@ -325,10 +304,9 @@ class _ManageProfileScreenState extends State<ManageProfileScreen> {
             ),
           ),
         ),
-      )
+      ),
     );
   }
-
 
   Widget _menuCard(
     BuildContext context, {

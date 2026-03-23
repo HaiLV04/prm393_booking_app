@@ -32,12 +32,10 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
 
   bool _loading = true;
   bool _saving = false;
-  bool _notifications = true;
   TimeOfDay _openTime = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _closeTime = const TimeOfDay(hour: 22, minute: 0);
   String? _error;
 
-  static const String _notificationsKey = 'admin_notifications_enabled';
   static const String _openHourKey = 'admin_open_hour';
   static const String _openMinuteKey = 'admin_open_minute';
   static const String _closeHourKey = 'admin_close_hour';
@@ -82,8 +80,6 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
 
   Future<void> _loadLocalPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    _notifications = prefs.getBool(_notificationsKey) ?? true;
-
     final openHour = prefs.getInt(_openHourKey) ?? _openTime.hour;
     final openMinute = prefs.getInt(_openMinuteKey) ?? _openTime.minute;
     final closeHour = prefs.getInt(_closeHourKey) ?? _closeTime.hour;
@@ -91,12 +87,6 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
 
     _openTime = TimeOfDay(hour: openHour, minute: openMinute);
     _closeTime = TimeOfDay(hour: closeHour, minute: closeMinute);
-  }
-
-  Future<void> _setNotifications(bool value) async {
-    setState(() => _notifications = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_notificationsKey, value);
   }
 
   Future<void> _saveOperatingHours(TimeOfDay open, TimeOfDay close) async {
@@ -202,9 +192,9 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Update failed: ${e.message}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Update failed: ${e.message}')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -235,8 +225,9 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
                 _input(
                   controller: _fullNameController,
                   label: 'Name',
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'Please enter name' : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Please enter name'
+                      : null,
                 ),
                 const SizedBox(height: 10),
                 _input(controller: _phoneController, label: 'Phone'),
@@ -247,7 +238,9 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) return null;
                     final regex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-                    return regex.hasMatch(value.trim()) ? null : 'Invalid email';
+                    return regex.hasMatch(value.trim())
+                        ? null
+                        : 'Invalid email';
                   },
                 ),
                 const SizedBox(height: 14),
@@ -312,7 +305,9 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
       return Scaffold(
         backgroundColor: _bg,
         appBar: AppBar(backgroundColor: _bg, foregroundColor: _textColor),
-        body: Center(child: Text(_error!, style: GoogleFonts.manrope(color: _textColor))),
+        body: Center(
+          child: Text(_error!, style: GoogleFonts.manrope(color: _textColor)),
+        ),
       );
     }
 
@@ -336,8 +331,9 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
               title: 'App Theme',
               subtitle: darkMode ? 'Dark' : 'Light',
               onTap: () async {
-                await ThemeController.instance
-                    .setMode(darkMode ? ThemeMode.light : ThemeMode.dark);
+                await ThemeController.instance.setMode(
+                  darkMode ? ThemeMode.light : ThemeMode.dark,
+                );
                 if (mounted) setState(() {});
               },
             ),
@@ -352,7 +348,8 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
             _tile(
               icon: Icons.schedule,
               title: 'Operating Hours',
-              subtitle: '${_formatTime(_openTime)} - ${_formatTime(_closeTime)}',
+              subtitle:
+                  '${_formatTime(_openTime)} - ${_formatTime(_closeTime)}',
               onTap: _openOperatingHoursEditor,
             ),
             _divider(),
@@ -361,35 +358,6 @@ class _ManageSettingsScreenState extends State<ManageSettingsScreen> {
               title: 'Menu Management',
               subtitle: 'Digital menu options',
               onTap: () => Navigator.pushNamed(context, '/admin/menu'),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _card,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _border),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.notifications, color: _muted),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Notifications',
-                    style: GoogleFonts.manrope(
-                      color: _textColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Spacer(),
-                  Switch(
-                    value: _notifications,
-                    activeThumbColor: _primary,
-                    onChanged: _setNotifications,
-                  ),
-                ],
-              ),
             ),
           ],
         ),
