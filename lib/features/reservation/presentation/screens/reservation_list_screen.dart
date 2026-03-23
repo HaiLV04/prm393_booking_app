@@ -103,7 +103,7 @@ class _ReservationListScreenState extends State<ReservationListScreen>
     final normalizedQuery = _searchQuery.trim().toLowerCase();
     return list
         .where((reservation) =>
-            reservation.tableName.toLowerCase().contains(normalizedQuery))
+            reservation.customerName.toLowerCase().contains(normalizedQuery))
         .toList();
   }
 
@@ -229,7 +229,7 @@ class _ReservationListScreenState extends State<ReservationListScreen>
                   fontWeight: FontWeight.w600,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Tìm theo tên bàn',
+                  hintText: 'Tìm kiếm',
                   hintStyle: const TextStyle(color: _textSecondary, fontSize: 15),
                   border: InputBorder.none,
                 ),

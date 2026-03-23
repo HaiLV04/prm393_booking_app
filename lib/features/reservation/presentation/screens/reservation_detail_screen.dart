@@ -91,7 +91,10 @@ class ReservationDetailScreen extends StatelessWidget {
     );
   }
 
-  bool get _canOpenOrder => _buildOrderContext() != null;
+  bool get _canOpenOrder {
+    final normalized = _normalizeReservationStatus(reservation.status);
+    return _buildOrderContext() != null && normalized == 'occupied';
+  }
 
   bool get _canCheckout {
     final normalized = _normalizeReservationStatus(reservation.status);

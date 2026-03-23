@@ -278,7 +278,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'API hiện yêu cầu tên và số điện thoại khách hàng để check-in.',
+                'API yêu cầu tên và số điện thoại khách hàng để check-in.',
                 style: TextStyle(color: _muted, fontSize: 14),
               ),
               const SizedBox(height: 18),
