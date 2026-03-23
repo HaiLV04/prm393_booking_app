@@ -101,6 +101,9 @@ class GourmetHavenApp extends StatelessWidget {
         // Menu & Category Management: Add, edit, delete menu items and categories
         '/admin/menu': (_) => const CategoryMenuScreen(),
 
+        // Settings: Restaurant details, appearance, and preferences
+        '/admin/settings': (_) => const ManageSettingsScreen(),
+
         // Statistics: Revenue, best-selling items, occupancy rates
         '/admin/statistics': (_) => const StatisticsScreen(),
 
