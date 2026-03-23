@@ -52,7 +52,7 @@ class OrderService {
       body: {
         'menuItemId': menuItemId,
         'quantity': quantity,
-        if (note != null) 'note': note,
+        'note': ?note,
       },
       requiresAuth: true,
     );

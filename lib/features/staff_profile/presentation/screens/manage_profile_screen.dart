@@ -18,7 +18,7 @@ class ManageProfileScreen extends StatefulWidget {
 class _ManageProfileScreenState extends State<ManageProfileScreen> {
   static const Color _primary = StaffDesignSystem.primary;
 
-  int _selectedNavIndex = 3;
+  final int _selectedNavIndex = 3;
   bool _isLoading = true;
   String _fullName = '';
   String _email = '';
