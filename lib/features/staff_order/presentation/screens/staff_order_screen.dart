@@ -26,6 +26,89 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
 
   int? _activeCategoryId;
 
+  void _handleBack() {
+    if (!mounted) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    Navigator.pushNamedAndRemoveUntil(context, '/staff/home', (route) => false);
+  }
+
+  void _showOrderSentToast() {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 18),
+        padding: EdgeInsets.zero,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        duration: const Duration(seconds: 4),
+        content: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1F2A23),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: StaffTheme.primary.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: StaffTheme.primary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.check_circle, color: StaffTheme.primary),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Đã xác nhận món và gửi bếp thành công.',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    messenger.hideCurrentSnackBar();
+                    Navigator.pushNamed(
+                      context,
+                      '/staff/order-detail',
+                      arguments: _context,
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFB8FFD6),
+                    textStyle: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  child: const Text('Xem đơn'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -41,9 +124,13 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
           ? routeContext
           : await _repository.getActiveContext();
 
+      if (!mounted) {
+        return;
+      }
+
       if (_context == null) {
         setState(() {
-          _error = 'Khong tim thay order dang phuc vu.';
+          _error = 'Không tìm thấy order đang phục vụ.';
           _isLoading = false;
         });
         return;
@@ -63,6 +150,10 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
         _priceByMenuItemId[item.id] = item.price;
       }
 
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _categories = categories;
         _activeCategoryId = null;
@@ -77,6 +168,9 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -95,12 +189,20 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
       for (final item in menuItems) {
         _priceByMenuItemId[item.id] = item.price;
       }
+
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _menuItems = menuItems;
         _error = null;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -118,43 +220,79 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
     });
   }
 
-  Future<void> _submitAndOpenOrder() async {
+  Future<void> _confirmAndSendToKitchen() async {
     if (_context == null || _isSubmitting) {
+      return;
+    }
+
+    final pendingItems = <MapEntry<int, int>>[];
+    for (final entry in _selectedQty.entries) {
+      final currentSynced = _syncedQty[entry.key] ?? 0;
+      final delta = entry.value - currentSynced;
+      if (delta > 0) {
+        pendingItems.add(MapEntry(entry.key, delta));
+      }
+    }
+
+    if (pendingItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chưa có món mới để xác nhận lên bếp.')),
+      );
+      return;
+    }
+
+    final pendingQty = pendingItems.fold<int>(0, (sum, e) => sum + e.value);
+    final pendingAmount = pendingItems.fold<double>(0, (sum, e) {
+      final unitPrice = _priceByMenuItemId[e.key] ?? 0;
+      return sum + unitPrice * e.value;
+    });
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Xác nhận lên món'),
+          content: Text(
+            'Bạn sẽ gửi $pendingQty món mới xuống bếp '
+            '(${_formatVnd(pendingAmount)}).\n\n'
+            'Sau bước này vẫn có thể gọi thêm, và chỉ thanh toán khi khách ăn xong.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Huỷ'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Xác nhận gửi bếp'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
       return;
     }
 
     setState(() => _isSubmitting = true);
 
     try {
-      for (final entry in _selectedQty.entries) {
+      for (final entry in pendingItems) {
+        await _repository.addOrderItem(
+          orderId: _context!.orderId,
+          menuItemId: entry.key,
+          quantity: entry.value,
+        );
         final currentSynced = _syncedQty[entry.key] ?? 0;
-        final delta = entry.value - currentSynced;
-        if (delta > 0) {
-          await _repository.addOrderItem(
-            orderId: _context!.orderId,
-            menuItemId: entry.key,
-            quantity: delta,
-          );
-          _syncedQty[entry.key] = entry.value;
-        }
+        _syncedQty[entry.key] = currentSynced + entry.value;
       }
 
       if (!mounted) {
         return;
       }
 
-      await Navigator.pushNamed(
-        context,
-        '/staff/order-detail',
-        arguments: _context,
-      );
-
-      // Reload after returning from detail screen.
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
-      await _initialize();
+      _showOrderSentToast();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -176,10 +314,23 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
     final borderColor = StaffTheme.primary.withValues(alpha: 0.2);
     final mutedColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
-    final totalQty = _selectedQty.values.fold<int>(0, (sum, qty) => sum + qty);
     final totalAmount = _selectedQty.entries.fold<double>(0, (sum, entry) {
       final unitPrice = _priceByMenuItemId[entry.key] ?? 0;
       return sum + entry.value * unitPrice;
+    });
+    final pendingQty = _selectedQty.entries.fold<int>(0, (sum, entry) {
+      final currentSynced = _syncedQty[entry.key] ?? 0;
+      final delta = entry.value - currentSynced;
+      return sum + (delta > 0 ? delta : 0);
+    });
+    final pendingAmount = _selectedQty.entries.fold<double>(0, (sum, entry) {
+      final currentSynced = _syncedQty[entry.key] ?? 0;
+      final delta = entry.value - currentSynced;
+      if (delta <= 0) {
+        return sum;
+      }
+      final unitPrice = _priceByMenuItemId[entry.key] ?? 0;
+      return sum + delta * unitPrice;
     });
 
     return Scaffold(
@@ -196,6 +347,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
                   child: Column(
                     children: [
                       _buildHeader(isDark),
+                      _buildContextInfo(isDark),
                       _buildCategories(),
                       Expanded(
                         child: _isLoading
@@ -212,7 +364,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
                                         child: Padding(
                                           padding: const EdgeInsets.all(20),
                                           child: Text(
-                                            'Khong co mon nao trong danh muc nay.',
+                                            'Không có món nào trong danh mục này.',
                                             textAlign: TextAlign.center,
                                             style: GoogleFonts.inter(color: mutedColor),
                                           ),
@@ -270,8 +422,12 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Tong cong', style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
-                              Text(_formatVnd(totalAmount), style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700)),
+                              Text('Món mới chờ xác nhận', style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
+                              Text(_formatVnd(pendingAmount), style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700)),
+                              Text(
+                                'Tổng tạm tính hiện tại: ${_formatVnd(totalAmount)}',
+                                style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
+                              ),
                             ],
                           ),
                         ),
@@ -280,15 +436,15 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
                             backgroundColor: StaffTheme.primary,
                             foregroundColor: const Color(0xFF0F172A),
                           ),
-                          onPressed: totalQty == 0 || _isSubmitting ? null : _submitAndOpenOrder,
+                          onPressed: pendingQty == 0 || _isSubmitting ? null : _confirmAndSendToKitchen,
                           icon: _isSubmitting
                               ? const SizedBox(
                                   width: 14,
                                   height: 14,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Icon(Icons.arrow_forward),
-                          label: const Text('Xem Order'),
+                              : const Icon(Icons.verified_outlined),
+                          label: Text('Xác nhận lên món (${pendingQty.toString()})'),
                         ),
                       ],
                     ),
@@ -304,8 +460,8 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
 
   Widget _buildHeader(bool isDark) {
     final title = _context == null
-        ? 'Order Screen'
-        : '${_context!.tableName} - ${_context!.guestCount} khach';
+        ? 'Gọi món'
+        : '${_context!.tableName} - ${_context!.guestCount} khách';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -314,7 +470,10 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
       ),
       child: Row(
         children: [
-          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back)),
+          IconButton(
+            onPressed: _handleBack,
+            icon: const Icon(Icons.arrow_back),
+          ),
           Expanded(
             child: Text(
               title,
@@ -332,6 +491,52 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
     );
   }
 
+  Widget _buildContextInfo(bool isDark) {
+    final orderContext = _context;
+    if (orderContext == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF172A20) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: StaffTheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: StaffTheme.primary.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.table_restaurant, color: StaffTheme.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(orderContext.tableName, style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                Text(
+                  '${orderContext.guestCount} khách - ${orderContext.customerName}',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCategories() {
     return SizedBox(
       height: 58,
@@ -342,7 +547,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
           final isAllChip = index == 0;
           final category = isAllChip ? null : _categories[index - 1];
           final active = isAllChip ? _activeCategoryId == null : _activeCategoryId == category!.id;
-          final label = isAllChip ? 'Tat ca' : category!.name;
+          final label = isAllChip ? 'Tất cả' : category!.name;
           return ChoiceChip(
             label: Text(
               label,
@@ -389,7 +594,7 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
                       item.imageUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      errorBuilder: (_, __, ___) => _menuImagePlaceholder(),
+                      errorBuilder: (context, error, stackTrace) => _menuImagePlaceholder(),
                     ),
             ),
           ),
@@ -471,6 +676,6 @@ class _StaffOrderScreenState extends State<StaffOrderScreen> {
         buffer.write('.');
       }
     }
-    return '${buffer.toString().split('').reversed.join()}d';
+    return '${buffer.toString().split('').reversed.join()}đ';
   }
 }

@@ -13,7 +13,7 @@ class OrderManagementScreen extends StatefulWidget {
 class _OrderManagementScreenState extends State<OrderManagementScreen> {
   final StaffOrderRepository _repository = StaffOrderRepository();
   late Future<List<ReservationData>> _reservationsFuture;
-  String _selectedStatus = 'all'; // all, pending, confirmed, serving, completed, cancelled
+  String _selectedStatus = 'all';
 
   @override
   void initState() {
@@ -39,7 +39,11 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                 title: 'Không tải được dữ liệu',
                 description: snapshot.error.toString(),
                 actionLabel: 'Thử lại',
-                onAction: () => setState(() => _reservationsFuture = _repository.getReservations()),
+                onAction: () {
+                  setState(() {
+                    _reservationsFuture = _repository.getReservations();
+                  });
+                },
               );
             }
 
@@ -47,9 +51,11 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
             final filtered = _selectedStatus == 'all'
                 ? reservations
                 : reservations.where((r) => r.status.toLowerCase() == _selectedStatus).toList();
-
-            // Sort by creation date descending
             filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+            final servingCount = reservations.where((r) => r.status.toLowerCase() == 'serving').length;
+            final completedCount = reservations.where((r) => r.status.toLowerCase() == 'completed').length;
+            final pendingCount = reservations.where((r) => r.status.toLowerCase() == 'pending').length;
 
             return Align(
               alignment: Alignment.topCenter,
@@ -60,7 +66,11 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                     StaffAppHeader(
                       title: 'Đơn hàng',
                       subtitle: 'Quản lý',
-                      onRefresh: () => setState(() => _reservationsFuture = _repository.getReservations()),
+                      onRefresh: () {
+                        setState(() {
+                          _reservationsFuture = _repository.getReservations();
+                        });
+                      },
                     ),
                     Expanded(
                       child: ListView(
@@ -71,25 +81,42 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                           StaffDesignSystem.spacing16,
                         ),
                         children: [
-                          // Filter chips
+                          Container(
+                            padding: const EdgeInsets.all(StaffDesignSystem.spacing12),
+                            decoration: BoxDecoration(
+                              color: context.cardColor,
+                              border: Border.all(color: context.borderColor),
+                              borderRadius: BorderRadius.circular(StaffDesignSystem.radiusLarge),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(child: _buildSummaryItem('Tổng đơn', '${reservations.length}')),
+                                Expanded(child: _buildSummaryItem('Đang phục vụ', '$servingCount')),
+                                Expanded(child: _buildSummaryItem('Chờ xử lý', '$pendingCount')),
+                                Expanded(child: _buildSummaryItem('Hoàn tất', '$completedCount')),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: StaffDesignSystem.spacing16),
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Row(
                               children: [
                                 _buildStatusChip('Tất cả', 'all'),
                                 const SizedBox(width: StaffDesignSystem.spacing8),
-                                _buildStatusChip('Chờ', 'pending'),
+                                _buildStatusChip('Chờ xử lý', 'pending'),
                                 const SizedBox(width: StaffDesignSystem.spacing8),
                                 _buildStatusChip('Xác nhận', 'confirmed'),
                                 const SizedBox(width: StaffDesignSystem.spacing8),
                                 _buildStatusChip('Phục vụ', 'serving'),
                                 const SizedBox(width: StaffDesignSystem.spacing8),
-                                _buildStatusChip('Xong', 'completed'),
+                                _buildStatusChip('Hoàn tất', 'completed'),
+                                const SizedBox(width: StaffDesignSystem.spacing8),
+                                _buildStatusChip('Đã hủy', 'cancelled'),
                               ],
                             ),
                           ),
                           const SizedBox(height: StaffDesignSystem.spacing24),
-                          
                           if (filtered.isEmpty)
                             EmptyState(
                               icon: Icons.receipt_long_outlined,
@@ -99,12 +126,14 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                             )
                           else
                             Column(
-                              children: filtered.map((reservation) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: StaffDesignSystem.spacing12),
-                                  child: _buildOrderCard(reservation),
-                                );
-                              }).toList(),
+                              children: filtered
+                                  .map(
+                                    (reservation) => Padding(
+                                      padding: const EdgeInsets.only(bottom: StaffDesignSystem.spacing12),
+                                      child: _buildOrderCard(reservation),
+                                    ),
+                                  )
+                                  .toList(),
                             ),
                         ],
                       ),
@@ -129,119 +158,56 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
       backgroundColor: context.cardColor,
       selectedColor: StaffDesignSystem.primary.withValues(alpha: 0.15),
       side: BorderSide(
-        color: isSelected
-            ? StaffDesignSystem.primary
-            : context.borderColor,
+        color: isSelected ? StaffDesignSystem.primary : context.borderColor,
       ),
     );
   }
 
   Widget _buildOrderCard(ReservationData reservation) {
-    return Container(
-      padding: const EdgeInsets.all(StaffDesignSystem.spacing12),
-      decoration: BoxDecoration(
-        color: context.cardColor,
-        border: Border.all(color: context.borderColor),
-        borderRadius: BorderRadius.circular(StaffDesignSystem.radiusLarge),
-        boxShadow: StaffDesignSystem.shadowLight,
-      ),
-      child: Column(
-        children: [
-          // Header: Table info and status
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Bàn ${reservation.tableName}',
-                      style: StaffTypography.titleMedium(context.isDarkMode),
-                    ),
-                    const SizedBox(height: StaffDesignSystem.spacing4),
-                    Text(
-                      reservation.customerName,
-                      style: StaffTypography.bodySmall(context.isDarkMode),
-                    ),
-                  ],
+    final normalized = reservation.status.trim().toLowerCase();
+    final isClosed = normalized == 'cancelled' ||
+        normalized == 'canceled' ||
+        normalized == 'completed' ||
+        normalized == 'checkedout' ||
+        normalized == 'finished';
+
+    return ModernOrderCard(
+      tableName: reservation.tableName.replaceAll('Table', 'Bàn'),
+      customerName: reservation.customerName,
+      guestCount: reservation.guestCount,
+      timeText: _formatTime(reservation.createdAt),
+      status: reservation.status,
+      onOpen: reservation.orderId == null || isClosed
+          ? null
+          : () {
+              Navigator.pushNamed(
+                context,
+                '/staff/order-detail',
+                arguments: StaffOrderContext(
+                  tableId: reservation.tableId,
+                  tableName: reservation.tableName,
+                  reservationId: reservation.id,
+                  orderId: reservation.orderId!,
+                  guestCount: reservation.guestCount,
+                  checkInTime: reservation.createdAt,
+                  customerName: reservation.customerName,
+                  reservationStatus: reservation.status,
                 ),
-              ),
-              StatusBadge(status: reservation.status),
-            ],
-          ),
-          const SizedBox(height: StaffDesignSystem.spacing12),
-          Divider(color: context.borderColor, height: 1),
-          const SizedBox(height: StaffDesignSystem.spacing12),
-          
-          // Details row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildDetailItem(
-                Icons.people_outlined,
-                '${reservation.guestCount}',
-                'khách',
-              ),
-              _buildDetailItem(
-                Icons.access_time_outlined,
-                _formatTime(reservation.createdAt),
-                'vừa',
-              ),
-              _buildDetailItem(
-                Icons.event_seat_outlined,
-                reservation.tableName,
-                'khu vực',
-              ),
-            ],
-          ),
-          
-          if (reservation.orderId != null) ...[
-            const SizedBox(height: StaffDesignSystem.spacing12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.tonal(
-                onPressed: () {
-                  // Navigate to order detail
-                  Navigator.pushNamed(
-                    context,
-                    '/staff/order-detail',
-                    arguments: StaffOrderContext(
-                      tableId: reservation.tableId,
-                      tableName: reservation.tableName,
-                      reservationId: reservation.id,
-                      orderId: reservation.orderId!,
-                      guestCount: reservation.guestCount,
-                      checkInTime: reservation.createdAt,
-                      customerName: reservation.customerName,
-                    ),
-                  );
-                },
-                child: const Text('Xem chi tiết'),
-              ),
-            ),
-          ],
-        ],
-      ),
+              );
+            },
     );
   }
 
-  Widget _buildDetailItem(IconData icon, String value, String label) {
+  Widget _buildSummaryItem(String label, String value) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: context.textSecondary),
-        const SizedBox(height: StaffDesignSystem.spacing4),
-        Text(
-          value,
-          style: StaffTypography.labelMedium(context.isDarkMode),
-        ),
-        const SizedBox(height: StaffDesignSystem.spacing2),
+        Text(value, style: StaffTypography.headlineSmall(context.isDarkMode)),
+        const SizedBox(height: 2),
         Text(
           label,
           style: StaffTypography.bodySmall(context.isDarkMode),
+          textAlign: TextAlign.center,
         ),
       ],
     );

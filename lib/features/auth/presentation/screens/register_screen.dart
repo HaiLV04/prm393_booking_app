@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:prm393_booking_app/core/network/app_config.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -56,7 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final url = Uri.parse('http://localhost:5200/api/auth/register');
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/api/auth/register');
 
       final response = await http.post(
         url,
@@ -71,14 +72,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }),
       );
 
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      if (response.statusCode == 200 && data['isSuccess'] == true) {
+      final isSuccess =
+          data['success'] == true ||
+          data['isSuccess'] == true ||
+          data['Success'] == true;
+      if (response.statusCode == 200 && isSuccess) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                data['message'] ?? 'Registration successful. Please login.',
+                (data['message'] ??
+                        data['Message'] ??
+                        'Registration successful. Please login.')
+                    .toString(),
               ),
             ),
           );
@@ -87,16 +95,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Registration failed')),
+            SnackBar(
+              content: Text(
+                (data['message'] ?? data['Message'] ?? 'Registration failed')
+                    .toString(),
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Error connecting to server (Ensure backend is running)',
+              'Cannot connect to ${AppConfig.apiBaseUrl}. Check backend host/port and device network.',
             ),
           ),
         );
